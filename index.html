@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chladnička Kiosk v18</title>
+    <title>Chladnička Kiosk v19</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -16,129 +16,603 @@
             --color-in: #22c55e;
             --color-ret: #eab308;
             --color-warn: #f97316;
+            --color-blue: #3b82f6;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
-        body { background-color: var(--bg-dark); color: var(--text-main); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; border: 6px solid var(--color-out); transition: border-color 0.2s ease; }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 6px solid var(--color-out);
+            transition: border-color 0.25s ease, background-color 0.2s ease;
+        }
+
         body.mode-in { border-color: var(--color-in); }
         body.mode-ret { border-color: var(--color-ret); }
-        body.flash-error { border-color: #ffffff; background-color: #450a0a; }
+        body.flash-error { background-color: #450a0a; }
 
-        .modes-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px; background: #09090b; flex-shrink: 0; }
-        .mode-btn { padding: 10px 4px; border: 2px solid transparent; border-radius: 10px; font-size: 0.95rem; font-weight: 800; color: white; background: var(--card-bg); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .modes-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            padding: 8px;
+            background: #09090b;
+            flex-shrink: 0;
+        }
+
+        .mode-btn {
+            padding: 10px 4px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: white;
+            background: var(--card-bg);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
         .mode-btn span.sub { font-size: 0.7rem; font-weight: 400; opacity: 0.85; }
         .mode-btn.active-out { background: var(--color-out); }
         .mode-btn.active-in { background: var(--color-in); color: #000; }
         .mode-btn.active-ret { background: var(--color-ret); color: #000; }
 
-        .main-layout { display: grid; grid-template-columns: 350px 1fr; gap: 10px; padding: 0 10px 10px 10px; flex: 1; min-height: 0; overflow: hidden; }
-        @media (max-width: 768px) {
-            .main-layout { grid-template-columns: 1fr; grid-template-rows: 265px 1fr; }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 10px;
+            padding: 0 10px 10px 10px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
         }
 
-        .scanner-panel { background: var(--card-bg); border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-        .qty-mult-bar { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
-        .qty-mult-bar span { font-size: 0.75rem; color: var(--text-muted); margin-right: 4px; font-weight: 600; }
-        .mult-btn { flex: 1; padding: 5px 0; border-radius: 6px; border: 1px solid #3f3f46; background: #121214; color: white; font-weight: 800; font-size: 0.85rem; cursor: pointer; }
-        .mult-btn.active { background: #3b82f6; border-color: #60a5fa; }
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+        }
 
-        .camera-wrapper { position: relative; width: 100%; flex: 1; min-height: 100px; background: #000; border-radius: 10px; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-        #reader { width: 100%; height: 100%; }
-        #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; transition: transform 0.2s; }
-        .laser-line { position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: rgba(239, 68, 68, 0.85); box-shadow: 0 0 8px #ef4444; pointer-events: none; z-index: 5; }
-        #start-cam-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.88); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; padding: 10px; text-align: center; }
-        .big-start-btn { background: #3b82f6; color: white; border: none; padding: 12px 20px; font-size: 1rem; font-weight: 800; border-radius: 10px; cursor: pointer; }
+        .scanner-panel {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0;
+        }
 
-        .status-box { background: #121214; padding: 6px 8px; border-radius: 8px; text-align: center; min-height: 44px; display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
+        .multiplier-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mult-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+
+        .mult-btn {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: 7px;
+            border: 1px solid #3f3f46;
+            background: #121214;
+            color: white;
+            font-weight: 800;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .mult-btn.active {
+            background: var(--color-blue);
+            border-color: #60a5fa;
+        }
+
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            height: 140px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #reader {
+            width: 100%;
+            height: 100%;
+        }
+
+        #reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            transition: transform 0.2s ease;
+        }
+
+        #reader video.mirrored {
+            transform: scaleX(-1);
+        }
+
+        .laser-line {
+            position: absolute;
+            left: 10%;
+            right: 10%;
+            top: 50%;
+            height: 2px;
+            background: rgba(239, 68, 68, 0.85);
+            box-shadow: 0 0 8px #ef4444;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #start-cam-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .big-start-btn {
+            background: var(--color-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 800;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .status-box {
+            background: #121214;
+            padding: 6px 8px;
+            border-radius: 8px;
+            text-align: center;
+            min-height: 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
         .status-title { font-weight: bold; font-size: 0.88rem; }
-        .status-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+        .status-sub { font-size: 0.74rem; color: var(--text-muted); margin-top: 1px; }
 
-        .manual-input { display: flex; gap: 5px; flex-shrink: 0; }
-        .manual-input input { flex: 1; background: #121214; border: 1px solid #333; color: white; padding: 7px 9px; border-radius: 8px; font-size: 0.9rem; }
-        .manual-input button { background: #3f3f46; color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .manual-input { display: flex; gap: 5px; }
+        .manual-input input {
+            flex: 1;
+            background: #121214;
+            border: 1px solid #333;
+            color: white;
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .manual-input button {
+            background: #3f3f46;
+            color: white;
+            border: none;
+            padding: 0 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-        .inventory-panel { background: var(--card-bg); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-        .inv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #2e2e36; flex-wrap: wrap; gap: 5px; flex-shrink: 0; }
-        .inv-title { display: flex; align-items: center; gap: 6px; font-size: 1rem; font-weight: 800; }
-        .ver-badge { background: #16a34a; color: white; font-size: 0.72rem; padding: 2px 6px; border-radius: 5px; font-weight: 800; }
-        .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: #52525b; display: inline-block; }
+        .inventory-panel {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .inv-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2e2e36;
+            flex-shrink: 0;
+        }
+
+        .inv-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inv-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ver-badge {
+            background: #16a34a;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        .sync-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #52525b;
+        }
         .sync-dot.online { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
 
-        .header-btns { display: flex; gap: 4px; flex-wrap: wrap; }
-        .cam-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 5px 8px; border-radius: 7px; cursor: pointer; font-size: 0.75rem; font-weight: 600; }
-        .cam-btn.toggle-on { background: #1d4ed8; border-color: #3b82f6; }
-        .cam-btn.stop-btn { background: #7f1d1d; border-color: #ef4444; }
+        .toolbar-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
 
-        .filter-bar { display: flex; gap: 5px; margin-bottom: 6px; flex-shrink: 0; }
-        .search-wrap { position: relative; flex: 1; display: flex; }
-        .search-wrap input { width: 100%; background: #121214; border: 1px solid #3f3f46; color: white; padding: 6px 26px 6px 9px; border-radius: 8px; font-size: 0.85rem; }
-        .search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; }
-        .sort-select { background: #121214; border: 1px solid #3f3f46; color: white; padding: 6px; border-radius: 8px; font-size: 0.8rem; max-width: 155px; }
+        .tool-btn {
+            background: #27272a;
+            color: white;
+            border: 1px solid #3f3f46;
+            padding: 5px 8px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.76rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
 
-        .inv-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px; }
-        .inv-item { background: #121214; padding: 9px 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #3f3f46; gap: 6px; }
+        .tool-btn.active-toggle {
+            background: #1d4ed8;
+            border-color: #60a5fa;
+        }
+
+        .tool-btn.no-ean-btn {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        .tool-btn.stop-btn {
+            background: #7f1d1d;
+            border-color: #ef4444;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-wrap input {
+            width: 100%;
+            background: #121214;
+            border: 1px solid #333;
+            color: white;
+            padding: 7px 26px 7px 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 6px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sort-select {
+            background: #121214;
+            border: 1px solid #333;
+            color: white;
+            padding: 7px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            max-width: 155px;
+        }
+
+        .inv-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 2px;
+        }
+
+        .inv-item {
+            background: #121214;
+            padding: 9px 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #3f3f46;
+            gap: 6px;
+        }
+
         .inv-item.opened { border-left-color: var(--color-ret); }
-        .inv-item.exp-soon { border-left-color: var(--color-warn); background: rgba(249, 115, 22, 0.08); }
-        .inv-item.expired { border-left-color: var(--color-out); background: rgba(239, 68, 68, 0.12); }
-        .inv-item.empty { opacity: 0.5; }
+        .inv-item.exp-soon { border-left-color: var(--color-warn); background: #1c1510; }
+        .inv-item.expired { border-left-color: var(--color-out); background: #1f1214; }
+        .inv-item.empty { opacity: 0.45; }
 
         .item-info { flex: 1; min-width: 0; }
-        .item-name { font-size: 0.95rem; font-weight: 600; word-break: break-word; }
-        .item-name.unnamed { color: #60a5fa; text-decoration: underline; cursor: pointer; }
-        .item-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-        .badge { font-size: 0.65rem; font-weight: 800; padding: 2px 5px; border-radius: 4px; text-transform: uppercase; }
+        .item-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         .badge-open { background: var(--color-ret); color: #000; }
-        .badge-exp-ok { background: #27272a; color: #d4d4d8; cursor: pointer; }
-        .badge-exp-soon { background: var(--color-warn); color: #000; cursor: pointer; }
-        .badge-expired { background: var(--color-out); color: #fff; cursor: pointer; }
+        .badge-exp-ok { background: #27272a; color: #d4d4d8; }
+        .badge-exp-soon { background: var(--color-warn); color: #000; }
+        .badge-exp-dead { background: var(--color-out); color: #fff; }
 
         .item-controls { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
         .qty-badge { font-size: 1.1rem; font-weight: 800; min-width: 26px; text-align: center; }
-        .ctrl-btn { width: 30px; height: 30px; border-radius: 7px; border: none; background: #27272a; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
-        .edit-btn { background: #1e293b; color: #93c5fd; font-size: 0.85rem; }
+        .ctrl-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            border: none;
+            background: #27272a;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .edit-btn {
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            color: #e4e4e7;
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); justify-content: center; align-items: center; z-index: 100; padding: 15px; }
-        .modal-content { background: var(--card-bg); padding: 18px; border-radius: 14px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; max-height: 92dvh; overflow-y: auto; }
-        .modal-content label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: -6px; }
-        .modal-content input[type="text"], .modal-content input[type="date"], .modal-content input[type="number"] { padding: 10px; font-size: 1rem; border-radius: 8px; border: 1px solid #444; background: #121214; color: white; width: 100%; }
-        .quick-days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-        .quick-days button { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 4px; border-radius: 7px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
-        .ocr-box { background: #121214; border: 1px solid #333; border-radius: 10px; padding: 8px; display: none; flex-direction: column; gap: 8px; }
-        .ocr-video-wrap { position: relative; width: 100%; height: 150px; background: #000; border-radius: 8px; overflow: hidden; }
-        #ocr-video { width: 100%; height: 100%; object-fit: cover; }
-        .ocr-guide { position: absolute; left: 6%; right: 6%; top: 50%; height: 76px; transform: translateY(-50%); border: 2px solid #22c55e; box-shadow: 0 0 0 999px rgba(0,0,0,0.55); pointer-events: none; }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 440px;
+            max-height: 92dvh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-content label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: -6px;
+        }
+
+        .modal-content input {
+            padding: 10px;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #121214;
+            color: white;
+            width: 100%;
+        }
+
+        .quick-days {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .quick-days button {
+            background: #27272a;
+            color: white;
+            border: 1px solid #3f3f46;
+            padding: 8px 4px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .no-ean-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .no-ean-item-btn {
+            background: #121214;
+            border: 1px solid #3f3f46;
+            color: white;
+            padding: 10px 6px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .no-ean-item-btn:active {
+            background: var(--color-in);
+            color: #000;
+        }
+
+        .ocr-box {
+            background: #121214;
+            border: 1px solid #3f3f46;
+            border-radius: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ocr-video-wrap {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .ocr-video-wrap video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ocr-video-wrap video.mirrored {
+            transform: scaleX(-1);
+        }
+
+        .ocr-guide {
+            position: absolute;
+            left: 6%;
+            right: 6%;
+            top: 50%;
+            height: 76px;
+            transform: translateY(-50%);
+            border: 2px solid #22c55e;
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+            pointer-events: none;
+        }
+
         .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
-        .modal-actions button { flex: 1; padding: 11px; border-radius: 9px; border: none; font-weight: bold; font-size: 0.95rem; cursor: pointer; }
+        .modal-actions button {
+            flex: 1;
+            padding: 11px;
+            border-radius: 9px;
+            border: none;
+            font-weight: bold;
+            font-size: 0.92rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+
     <div class="modes-bar">
-        <button id="btn-out" class="mode-btn active-out" onclick="setMode('OUT')">🔴 VÝBER<span class="sub">Predvolený</span></button>
-        <button id="btn-in" class="mode-btn" onclick="setMode('IN')">🟢 NÁKUP<span class="sub" id="timer-in">Vkladám dnu</span></button>
-        <button id="btn-ret" class="mode-btn" onclick="setMode('RET')">🟡 VRÁTENIE<span class="sub" id="timer-ret">Otvorené</span></button>
+        <button id="btn-out" class="mode-btn active-out" onclick="setMode('OUT')">
+            🔴 VÝBER
+            <span class="sub">Predvolený režim</span>
+        </button>
+        <button id="btn-in" class="mode-btn" onclick="setMode('IN')">
+            🟢 NÁKUP
+            <span class="sub" id="timer-in">Vkladám dnu</span>
+        </button>
+        <button id="btn-ret" class="mode-btn" onclick="setMode('RET')">
+            🟡 VRÁTENIE
+            <span class="sub" id="timer-ret">Otvorené / Späť</span>
+        </button>
     </div>
 
     <div class="main-layout">
         <div class="scanner-panel">
-            <div class="qty-mult-bar">
-                <span>Počet ks:</span>
-                <button class="mult-btn active" id="mult-1" onclick="setMult(1)">1x</button>
-                <button class="mult-btn" id="mult-2" onclick="setMult(2)">2x</button>
-                <button class="mult-btn" id="mult-3" onclick="setMult(3)">3x</button>
-                <button class="mult-btn" id="mult-4" onclick="setMult(4)">4x</button>
-                <button class="mult-btn" id="mult-5" onclick="setMult(5)">5x</button>
+            <div class="multiplier-bar">
+                <span class="mult-label">Počet ks:</span>
+                <button class="mult-btn active" id="mult-1" onclick="setMultiplier(1)">1x</button>
+                <button class="mult-btn" id="mult-2" onclick="setMultiplier(2)">2x</button>
+                <button class="mult-btn" id="mult-3" onclick="setMultiplier(3)">3x</button>
+                <button class="mult-btn" id="mult-4" onclick="setMultiplier(4)">4x</button>
+                <button class="mult-btn" id="mult-5" onclick="setMultiplier(5)">5x</button>
             </div>
+
             <div class="camera-wrapper">
                 <div id="reader"></div>
                 <div class="laser-line"></div>
                 <div id="start-cam-overlay">
                     <button class="big-start-btn" onclick="initCameras()">📷 ZAPNÚŤ KAMERU</button>
-                    <p style="font-size:0.75rem; color:#ccc; margin-top:6px;">Skenovanie EAN-13 / EAN-8</p>
                 </div>
             </div>
+
             <div class="status-box" id="status-box">
-                <div class="status-title">Pripravený (v18)</div>
-                <div class="status-sub">Kontrola pravosti EAN kódov aktívna</div>
+                <div class="status-title">Pripravený</div>
+                <div class="status-sub">Ťukni na ZAPNÚŤ KAMERU alebo pridaj položku</div>
             </div>
+
             <div class="manual-input">
                 <input type="text" id="manual-ean" placeholder="EAN kód..." inputmode="numeric">
                 <button onclick="manualScan()">OK</button>
@@ -147,33 +621,35 @@
 
         <div class="inventory-panel">
             <div class="inv-header">
-                <div class="inv-title">
-                    🧊 <span id="header-counts">0 pol. • 0 ks</span>
-                    <span class="ver-badge">v18</span>
-                    <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
+                <div class="inv-top-row">
+                    <div class="inv-title-wrap">
+                        <strong style="font-size:0.95rem;">🧊 <span id="item-types-count">0</span> pol. • <span id="total-count">0</span> ks</strong>
+                        <span class="ver-badge">v19</span>
+                        <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
+                    </div>
                 </div>
-                <div class="header-btns">
-                    <button class="cam-btn" id="btn-ask-exp" onclick="toggleAskExpiry()">📅 Spotreba: VYP</button>
-                    <button class="cam-btn" id="btn-cam-label" onclick="switchCamera()">🔄 Kamera</button>
-                    <button class="cam-btn" id="btn-zoom" onclick="cycleZoom()">🔍 1x</button>
-                    <button class="cam-btn stop-btn" onclick="stopCamera()">⏹ Vypnúť</button>
-                    <button class="cam-btn" onclick="openCloudModal()">☁️ Cloud</button>
-                    <button class="cam-btn" onclick="exportBackup()">💾 Záloha</button>
-                    <button class="cam-btn" onclick="document.getElementById('import-file').click()">📂 Obnoviť</button>
+                <div class="toolbar-btns">
+                    <button class="tool-btn no-ean-btn" onclick="openNoEanModal()">🍎 + Bez EAN</button>
+                    <button class="tool-btn" id="btn-ask-exp" onclick="toggleAskExpiry()">📅 Spotreba: VYP</button>
+                    <button class="tool-btn" onclick="switchCamera()">🔄 Kamera</button>
+                    <button class="tool-btn stop-btn" onclick="stopCamera()">⏹ Vypnúť</button>
+                    <button class="tool-btn" onclick="openCloudModal()">☁️ Cloud</button>
+                    <button class="tool-btn" onclick="exportBackup()">💾 Záloha</button>
+                    <button class="tool-btn" onclick="document.getElementById('import-file').click()">📂 Obnoviť</button>
                     <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(event)">
                 </div>
             </div>
 
             <div class="filter-bar">
                 <div class="search-wrap">
-                    <input type="text" id="search-input" placeholder="🔍 Hľadať produkt alebo EAN..." oninput="renderList()">
-                    <button class="search-clear" onclick="clearSearch()">✕</button>
+                    <input type="text" id="search-input" placeholder="🔍 Hľadať produkt..." oninput="renderInventory()">
+                    <button class="clear-search" id="clear-search-btn" onclick="clearSearch()">✕</button>
                 </div>
-                <select class="sort-select" id="sort-select" onchange="renderList()">
-                    <option value="exp_asc">Spotreba: Najskôr</option>
-                    <option value="exp_desc">Spotreba: Najdlhšie</option>
-                    <option value="recent">Prirodzene (Zmeny)</option>
-                    <option value="alpha">Abecedne (A – Z)</option>
+                <select id="sort-select" class="sort-select" onchange="renderInventory()">
+                    <option value="exp-asc">Spotreba: Najskôr</option>
+                    <option value="exp-desc">Spotreba: Najdlhšia</option>
+                    <option value="natural">Podľa zmeny</option>
+                    <option value="alpha">Abecedne (A-Z)</option>
                 </select>
             </div>
 
@@ -181,116 +657,137 @@
         </div>
     </div>
 
-    <!-- Modal: Spotreba / OCR -->
-    <div class="modal" id="expiry-modal">
+    <!-- Modal: Položky bez EAN kódu -->
+    <div class="modal" id="no-ean-modal">
         <div class="modal-content">
-            <h3 id="exp-modal-title">Dátum spotreby</h3>
-            <div class="quick-days">
-                <button onclick="setQuickExpiry(2)">+2 dni</button>
-                <button onclick="setQuickExpiry(5)">+5 dní</button>
-                <button onclick="setQuickExpiry(14)">+2 týž.</button>
-                <button onclick="setQuickExpiry(30)">+1 mes.</button>
-            </div>
-            <input type="date" id="exp-date-input">
-            <button class="cam-btn" style="padding:10px; background:#1d4ed8;" onclick="startOcrCamera()">📷 Prečítať dátum z obalu (OCR)</button>
-            <div class="ocr-box" id="ocr-box">
-                <div class="ocr-video-wrap">
-                    <video id="ocr-video" autoplay playsinline muted></video>
-                    <div class="ocr-guide"></div>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <button class="cam-btn" style="flex:1; padding:10px; background:#16a34a;" onclick="captureAndReadOcr()">📸 ODFOTIŤ DÁTUM</button>
-                    <button class="cam-btn" style="padding:10px;" onclick="toggleOcrFacing()">🔄</button>
-                </div>
-                <div id="ocr-status" style="font-size:0.78rem; color:#a0a0ab; text-align:center;">Namier dátum (aj MM RRRR) do zeleného rámika</div>
+            <h3>🍎 Pridať položku bez EAN</h3>
+            <p style="font-size:0.78rem; color:var(--text-muted);">Aplikuje sa zvolený režim (Výber / Nákup / Vrátenie) a počet kusov.</p>
+            <div class="no-ean-grid" id="no-ean-grid"></div>
+            <label>Alebo vlastný názov:</label>
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="custom-no-ean-input" placeholder="Napr. Nedeľný vývar, Domáci džem...">
+                <button style="background:var(--color-in); color:#000; border:none; border-radius:8px; padding:0 14px; font-weight:800; cursor:pointer;" onclick="addCustomNoEan()">Pridať</button>
             </div>
             <div class="modal-actions">
-                <button style="background:#3f3f46; color:white;" onclick="closeExpiryModal(false)">Bez dátumu</button>
-                <button style="background:var(--color-in); color:black;" onclick="closeExpiryModal(true)">Uložiť dátum</button>
+                <button style="background:#3f3f46; color:white;" onclick="closeNoEanModal()">Zavrieť</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Editácia položky -->
+    <!-- Modal: Úprava položky a dátumu spotreby -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
-            <h3>Upraviť položku</h3>
+            <h3 id="edit-modal-title">Upraviť položku</h3>
             <label>Názov produktu</label>
-            <input type="text" id="edit-name">
-            <label>Počet kusov</label>
-            <input type="number" id="edit-qty" min="0">
-            <label>Dátum spotreby</label>
-            <div style="display:flex; gap:6px;">
-                <input type="date" id="edit-expiry" style="flex:1;">
-                <button class="cam-btn" style="padding:0 12px; background:#1d4ed8;" onclick="openOcrFromEdit()">📷 OCR</button>
+            <input type="text" id="edit-name-input" placeholder="Zadaj názov">
+            
+            <label>Počet kusov v chladničke</label>
+            <input type="number" id="edit-qty-input" min="0" inputmode="numeric">
+
+            <label>Dátum spotreby (voliteľné)</label>
+            <div class="quick-days">
+                <button type="button" onclick="setQuickExpiry(2)">+2 dni</button>
+                <button type="button" onclick="setQuickExpiry(5)">+5 dní</button>
+                <button type="button" onclick="setQuickExpiry(14)">+2 týž.</button>
+                <button type="button" onclick="setQuickExpiry(30)">+1 mes.</button>
             </div>
-            <label style="display:flex; align-items:center; gap:8px; margin-top:4px; color:white; cursor:pointer;">
-                <input type="checkbox" id="edit-opened" style="width:18px; height:18px;"> Označiť ako otvorené (načaté)
-            </label>
+            <input type="date" id="edit-exp-input">
+
+            <div class="ocr-box">
+                <div style="display:flex; gap:6px;">
+                    <button type="button" id="btn-start-ocr" style="flex:1; background:var(--color-blue); color:white; border:none; padding:9px; border-radius:7px; font-weight:bold; cursor:pointer;" onclick="startOcrCamera()">📷 Prečítať dátum kamerou</button>
+                    <button type="button" style="background:#27272a; color:white; border:1px solid #444; padding:9px 12px; border-radius:7px; cursor:pointer;" onclick="toggleOcrCameraSide()" title="Prepnúť prednú/zadnú kameru">🔄</button>
+                </div>
+                <div class="ocr-video-wrap" id="ocr-video-wrap">
+                    <video id="ocr-video" autoplay playsinline></video>
+                    <div class="ocr-guide"></div>
+                </div>
+                <button type="button" id="btn-capture-ocr" style="display:none; background:var(--color-in); color:#000; border:none; padding:10px; border-radius:7px; font-weight:800; cursor:pointer;" onclick="captureAndReadDate()">📸 ODFOTIŤ A PREČÍTAŤ</button>
+                <div id="ocr-status" style="font-size:0.75rem; color:var(--text-muted); text-align:center;"></div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                <input type="checkbox" id="edit-opened-check" style="width:18px; height:18px;">
+                <label for="edit-opened-check" style="margin:0; font-size:0.88rem; color:white;">Označiť ako otvorené (skorá spotreba)</label>
+            </div>
+
             <div class="modal-actions">
-                <button style="background:#7f1d1d; color:white;" onclick="deleteItem()">🗑️ Zmazať</button>
-                <button style="background:#3f3f46; color:white;" onclick="closeEditModal()">Zrušiť</button>
-                <button style="background:var(--color-in); color:black;" onclick="saveEditModal()">Uložiť</button>
+                <button type="button" style="background:#7f1d1d; color:white;" onclick="deleteCurrentItem()">🗑 Zmazať</button>
+                <button type="button" style="background:#3f3f46; color:white;" onclick="closeEditModal()">Zrušiť</button>
+                <button type="button" style="background:var(--color-in); color:#000;" onclick="saveEditModal()">Uložiť</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Cloud -->
+    <!-- Modal: Cloud synchronizácia -->
     <div class="modal" id="cloud-modal">
         <div class="modal-content">
             <h3>☁️ Cloud synchronizácia (Firebase)</h3>
-            <p style="font-size:0.78rem; color:var(--text-muted);">Zadaj URL tvojej Firebase Realtime Database a spoločný kód domácnosti pre mobil aj tablet.</p>
-            <label>Firebase URL</label>
-            <input type="text" id="cloud-url" placeholder="https://tvoj-projekt.firebaseio.com">
-            <label>Kód domácnosti (heslo)</label>
-            <input type="text" id="cloud-room" placeholder="napr. rodina2026">
+            <p style="font-size:0.78rem; color:var(--text-muted);">Prepoj tablet pri chladničke s mobilom v obchode cez bezplatnú Firebase Realtime Database.</p>
+            <label>URL databázy Firebase</label>
+            <input type="url" id="cloud-url-input" placeholder="https://tvoj-projekt-default-rtdb.firebaseio.com">
+            <label>Názov domácnosti (tajný kód)</label>
+            <input type="text" id="cloud-room-input" placeholder="Napr. novakovci2026">
             <div class="modal-actions">
                 <button style="background:#7f1d1d; color:white;" onclick="disconnectCloud()">Odpojiť</button>
-                <button style="background:#3f3f46; color:white;" onclick="document.getElementById('cloud-modal').style.display='none'">Zavrieť</button>
-                <button style="background:var(--color-in); color:black;" onclick="saveCloudConfig()">Pripojiť</button>
+                <button style="background:#3f3f46; color:white;" onclick="closeCloudModal()">Zavrieť</button>
+                <button style="background:var(--color-in); color:#000;" onclick="saveCloudConfig()">Pripojiť</button>
             </div>
         </div>
     </div>
 
-    <canvas id="mirror-canvas" style="display:none;"></canvas>
     <canvas id="ocr-canvas" style="display:none;"></canvas>
 
     <script>
         let currentMode = 'OUT';
-        let qtyMult = 1;
-        let askExpiry = false;
-        let resetTimer = null, countdownInterval = null;
+        let currentMultiplier = 1;
+        let askExpiryOnScan = false;
+        let resetTimer = null;
+        let countdownInterval = null;
 
-        // Ochrana proti falošným čítaniam EAN
+        let lastScannedCode = null;
+        let lastScanTime = 0;
         let candidateCode = null;
         let candidateCount = 0;
-        let lastAcceptedCode = null;
-        let lastAcceptedTime = 0;
 
         let cameras = [];
         let currentCameraIndex = 0;
         let isFrontCamera = true;
-        let zoomLevel = 1;
         let html5QrCode = null;
-        let mirrorInterval = null;
+        let isCameraRunning = false;
 
-        let activeExpiryEan = null;
-        let activeEditEan = null;
+        let editingEan = null;
         let ocrStream = null;
-        let ocrFacing = 'user';
-        let ocrTargetInputId = 'exp-date-input';
+        let ocrUseFront = true;
 
         let inventory = JSON.parse(localStorage.getItem('fridge_inventory')) || {};
         let productCatalog = JSON.parse(localStorage.getItem('fridge_catalog')) || {};
-        let cloudConfig = JSON.parse(localStorage.getItem('fridge_cloud')) || null;
-        let cloudSyncTimer = null;
+        let cloudConfig = JSON.parse(localStorage.getItem('fridge_cloud')) || { url: '', room: '' };
+        let cloudPollTimer = null;
 
-        // Matematická kontrola platnosti EAN-8 / EAN-13 / UPC-A
-        function isValidBarcode(code) {
-            const clean = String(code || '').replace(/\D/g, '');
-            if (![8, 12, 13].includes(clean.length)) return false;
-            if (/^(\d)+$/.test(clean)) return false; // vylúči napr. 111111111111
-            const digits = clean.split('').map(Number);
+        const QUICK_NO_EAN_ITEMS = [
+            { icon: '🍎', name: 'Jablká' },
+            { icon: '🍌', name: 'Banány' },
+            { icon: '🍅', name: 'Paradajky' },
+            { icon: '🥒', name: 'Uhorka' },
+            { icon: '🫑', name: 'Paprika' },
+            { icon: '🥕', name: 'Mrkva' },
+            { icon: '🥔', name: 'Zemiaky' },
+            { icon: '🧅', name: 'Cibuľa' },
+            { icon: '🥚', name: 'Vajcia' },
+            { icon: '🍞', name: 'Chlieb / Pečivo' },
+            { icon: '🧀', name: 'Syr (vážený)' },
+            { icon: '🍖', name: 'Šunka (vážená)' }
+        ];
+
+        function normalizeCode(raw) {
+            return String(raw || '').trim().replace(/\s+/g, '');
+        }
+
+        function isValidEanChecksum(code) {
+            if (code.startsWith('BEZ-EAN-')) return true;
+            if (!/^\d{8}$|^\d{12}$|^\d{13}$/.test(code)) return false;
+            const digits = code.split('').map(Number);
             const checkDigit = digits.pop();
             let sum = 0;
             digits.reverse().forEach((d, idx) => {
@@ -298,19 +795,6 @@
             });
             const calc = (10 - (sum % 10)) % 10;
             return calc === checkDigit;
-        }
-
-        function normalizeEan(raw) {
-            return String(raw || '').trim().replace(/\s+/g, '');
-        }
-
-        function findCatalogName(ean) {
-            if (productCatalog[ean]) return productCatalog[ean];
-            const stripped = ean.replace(/^0+/, '');
-            for (const key in productCatalog) {
-                if (key.replace(/^0+/, '') === stripped) return productCatalog[key];
-            }
-            return null;
         }
 
         function playBeep(type) {
@@ -323,27 +807,16 @@
                 if (type === 'ERR') {
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.28);
                 } else {
-                    osc.frequency.setValueAtTime(type === 'IN' ? 820 : (type === 'OUT' ? 480 : 620), ctx.currentTime);
+                    osc.frequency.setValueAtTime(type === 'IN' ? 780 : (type === 'OUT' ? 420 : 580), ctx.currentTime);
+                    gain.gain.setValueAtTime(0.28, ctx.currentTime);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.14);
                 }
-                gain.gain.setValueAtTime(0.28, ctx.currentTime);
-                osc.start();
-                osc.stop(ctx.currentTime + (type === 'ERR' ? 0.28 : 0.13));
             } catch (e) {}
-        }
-
-        function setMult(n) {
-            qtyMult = n;
-            [1, 2, 3, 4, 5].forEach(i => {
-                document.getElementById('mult-' + i).className = 'mult-btn' + (i === n ? ' active' : '');
-            });
-        }
-
-        function toggleAskExpiry() {
-            askExpiry = !askExpiry;
-            const btn = document.getElementById('btn-ask-exp');
-            btn.innerText = askExpiry ? '📅 Spotreba: ZAP' : '📅 Spotreba: VYP';
-            btn.className = 'cam-btn' + (askExpiry ? ' toggle-on' : '');
         }
 
         function setMode(mode) {
@@ -356,7 +829,7 @@
             clearTimeout(resetTimer);
             clearInterval(countdownInterval);
             document.getElementById('timer-in').innerText = 'Vkladám dnu';
-            document.getElementById('timer-ret').innerText = 'Otvorené';
+            document.getElementById('timer-ret').innerText = 'Otvorené / Späť';
 
             if (mode !== 'OUT') {
                 let sec = 60;
@@ -370,391 +843,465 @@
             }
         }
 
-        function onRawBarcodeDetected(rawCode, fromManual = false) {
-            const ean = normalizeEan(rawCode);
-            if (!ean) return;
-
-            if (!fromManual) {
-                // 1. Overenie matematickej platnosti EAN
-                if (!isValidBarcode(ean)) return;
-
-                // 2. Vyžadujeme 2 rovnaké prečítania po sebe proti náhodným zábleskom
-                if (ean === candidateCode) {
-                    candidateCount++;
-                } else {
-                    candidateCode = ean;
-                    candidateCount = 1;
-                }
-                if (candidateCount < 2) return;
-                candidateCode = null;
-                candidateCount = 0;
+        function setMultiplier(n) {
+            currentMultiplier = n;
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('mult-' + i).classList.toggle('active', i === n);
             }
-
-            const now = Date.now();
-            if (!fromManual && ean === lastAcceptedCode && (now - lastAcceptedTime) < 1400) return;
-            lastAcceptedCode = ean;
-            lastAcceptedTime = now;
-
-            processVerifiedScan(ean);
         }
 
-        function processVerifiedScan(ean) {
-            if (currentMode !== 'OUT') setMode(currentMode);
-            const mult = qtyMult;
-            if (qtyMult !== 1) setMult(1);
+        function toggleAskExpiry() {
+            askExpiryOnScan = !askExpiryOnScan;
+            const btn = document.getElementById('btn-ask-exp');
+            btn.innerText = askExpiryOnScan ? '📅 Spotreba: ZAP' : '📅 Spotreba: VYP';
+            btn.classList.toggle('active-toggle', askExpiryOnScan);
+        }
 
-            const existing = inventory[ean];
+        function onCameraFrameDecoded(rawText) {
+            const code = normalizeCode(rawText);
+            if (!isValidEanChecksum(code)) return;
+
+            if (code === candidateCode) {
+                candidateCount++;
+            } else {
+                candidateCode = code;
+                candidateCount = 1;
+            }
+
+            if (candidateCount >= 2) {
+                candidateCode = null;
+                candidateCount = 0;
+                processProductCode(code, null);
+            }
+        }
+
+        function processProductCode(rawCode, presetName) {
+            const code = normalizeCode(rawCode);
+            if (!code) return;
+
+            const now = Date.now();
+            if (code === lastScannedCode && (now - lastScanTime) < 1500) return;
+            lastScannedCode = code;
+            lastScanTime = now;
+
+            if (currentMode !== 'OUT') setMode(currentMode);
+
+            const qtyDelta = currentMultiplier;
+            setMultiplier(1);
+
+            const existing = inventory[code];
             const currentQty = existing ? (Number(existing.qty) || 0) : 0;
 
-            // Ochrana proti výberu pri 0 ks
             if (currentMode === 'OUT' && currentQty <= 0) {
                 playBeep('ERR');
                 document.body.classList.add('flash-error');
                 setTimeout(() => document.body.classList.remove('flash-error'), 400);
-                updateStatus('⛔ Položka má 0 ks! Prepni na NÁKUP', `Kód ${ean} nie je na sklade`);
+                updateStatus('⛔ Položka má 0 ks!', 'Prepni na zelený NÁKUP pre vklad dnu');
                 return;
             }
 
             playBeep(currentMode);
 
-            let name = (existing && existing.name && !existing.name.startsWith('Produkt ('))
-                ? existing.name
-                : (findCatalogName(ean) || `Produkt (${ean})`);
+            let resolvedName = presetName || (existing && existing.name) || productCatalog[code];
+            let needsOnlineLookup = false;
 
-            if (!inventory[ean]) {
-                inventory[ean] = { name: name, qty: 0, opened: false, expiry: '', updated: Date.now() };
+            if (!resolvedName) {
+                resolvedName = `Produkt (${code})`;
+                needsOnlineLookup = !code.startsWith('BEZ-EAN-');
             }
 
-            inventory[ean].updated = Date.now();
+            if (!inventory[code]) {
+                inventory[code] = {
+                    name: resolvedName,
+                    qty: 0,
+                    opened: false,
+                    expiry: '',
+                    updatedAt: Date.now(),
+                    updatedTime: ''
+                };
+            }
+
+            if (presetName) {
+                inventory[code].name = presetName;
+                productCatalog[code] = presetName;
+                localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
+            }
+
+            inventory[code].updatedAt = Date.now();
+            inventory[code].updatedTime = new Date().toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
 
             if (currentMode === 'IN') {
-                inventory[ean].qty = currentQty + mult;
-                inventory[ean].opened = false;
-                updateStatus(`✅ +${mult} ks: ${inventory[ean].name}`, `Spolu: ${inventory[ean].qty} ks`);
+                inventory[code].qty = currentQty + qtyDelta;
+                inventory[code].opened = false;
+                updateStatus(`✅ +${qtyDelta} ks: ${inventory[code].name}`, `Spolu: ${inventory[code].qty} ks`);
             } else if (currentMode === 'OUT') {
-                inventory[ean].qty = Math.max(0, currentQty - mult);
-                if (inventory[ean].qty === 0) inventory[ean].opened = false;
-                updateStatus(`🔴 -${mult} ks: ${inventory[ean].name}`, `Zostáva: ${inventory[ean].qty} ks`);
+                inventory[code].qty = Math.max(0, currentQty - qtyDelta);
+                if (inventory[code].qty === 0) inventory[code].opened = false;
+                updateStatus(`🔴 -${qtyDelta} ks: ${inventory[code].name}`, `Zostáva: ${inventory[code].qty} ks`);
             } else if (currentMode === 'RET') {
-                if (currentQty === 0) inventory[ean].qty = mult;
-                inventory[ean].opened = true;
-                updateStatus(`🟡 Vrátené (otvorené): ${inventory[ean].name}`, `Označené na skorú spotrebu`);
+                inventory[code].qty = currentQty === 0 ? qtyDelta : currentQty;
+                inventory[code].opened = true;
+                updateStatus(`🟡 Vrátené: ${inventory[code].name}`, 'Označené ako otvorené');
             }
 
-            saveData();
-            renderList();
+            saveAndRender();
 
-            // Tiché stiahnutie názvu z Open Food Facts na pozadí
-            if (inventory[ean].name.startsWith('Produkt (')) {
-                fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.status === 1 && data.product) {
-                            const fetched = data.product.product_name_sk || data.product.product_name_cs || data.product.product_name || data.product.generic_name;
-                            if (fetched && inventory[ean]) {
-                                inventory[ean].name = fetched;
-                                productCatalog[ean] = fetched;
-                                localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
-                                saveData();
-                                renderList();
-                            }
-                        }
-                    }).catch(() => {});
+            if (needsOnlineLookup) {
+                fetchProductNameBackground(code);
             }
 
-            if (askExpiry && (currentMode === 'IN' || currentMode === 'RET')) {
-                openExpiryModal(ean);
+            if (askExpiryOnScan && (currentMode === 'IN' || currentMode === 'RET')) {
+                openEditModal(code);
             }
+        }
+
+        async function fetchProductNameBackground(ean) {
+            try {
+                const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${ean}.json`);
+                const data = await res.json();
+                if (data.status === 1 && data.product) {
+                    const found = data.product.product_name_sk || data.product.product_name_cs || data.product.product_name || data.product.generic_name;
+                    if (found && inventory[ean]) {
+                        inventory[ean].name = found.trim();
+                        productCatalog[ean] = found.trim();
+                        localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
+                        saveAndRender();
+                    }
+                }
+            } catch (e) {}
         }
 
         function manualScan() {
             const inp = document.getElementById('manual-ean');
-            const val = inp.value.trim();
+            const val = normalizeCode(inp.value);
             if (val) {
-                onRawBarcodeDetected(val, true);
+                lastScannedCode = null;
+                processProductCode(val, null);
                 inp.value = '';
             }
         }
 
-        function adjustQty(ean, delta) {
-            if (!inventory[ean]) return;
-            const cur = Number(inventory[ean].qty) || 0;
-            if (delta < 0 && cur <= 0) {
-                playBeep('ERR');
-                updateStatus('⛔ Položka už má 0 ks', inventory[ean].name);
-                return;
-            }
-            inventory[ean].qty = Math.max(0, cur + delta);
-            inventory[ean].updated = Date.now();
-            if (inventory[ean].qty === 0) inventory[ean].opened = false;
-            saveData();
-            renderList();
+        function adjustQty(code, delta) {
+            if (!inventory[code]) return;
+            const cur = Number(inventory[code].qty) || 0;
+            inventory[code].qty = Math.max(0, cur + delta);
+            if (inventory[code].qty === 0) inventory[code].opened = false;
+            inventory[code].updatedAt = Date.now();
+            inventory[code].updatedTime = new Date().toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+            saveAndRender();
         }
 
         function updateStatus(title, sub) {
-            document.getElementById('status-box').innerHTML = `<div class="status-title">${title}</div><div class="status-sub">${sub}</div>`;
+            document.getElementById('status-box').innerHTML = `
+                <div class="status-title">${title}</div>
+                <div class="status-sub">${sub}</div>
+            `;
+        }
+
+        function getExpiryBadgeHtml(expiryStr) {
+            if (!expiryStr) return `<span class="badge badge-exp-ok">+ SPOTREBA</span>`;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expDate = new Date(expiryStr + 'T00:00:00');
+            const diffDays = Math.round((expDate - today) / (1000 * 60 * 60 * 24));
+            const formatted = expDate.toLocaleDateString('sk-SK');
+
+            if (diffDays < 0) return `<span class="badge badge-exp-dead">PO ZÁRUKE (${formatted})</span>`;
+            if (diffDays === 0) return `<span class="badge badge-exp-soon">DNES (${formatted})</span>`;
+            if (diffDays <= 3) return `<span class="badge badge-exp-soon">DO ${diffDays} DNÍ (${formatted})</span>`;
+            return `<span class="badge badge-exp-ok">📅 ${formatted}</span>`;
+        }
+
+        function getExpiryState(expiryStr) {
+            if (!expiryStr) return 'ok';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expDate = new Date(expiryStr + 'T00:00:00');
+            const diffDays = Math.round((expDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return 'expired';
+            if (diffDays <= 3) return 'exp-soon';
+            return 'ok';
         }
 
         function clearSearch() {
             document.getElementById('search-input').value = '';
-            renderList();
+            renderInventory();
         }
 
-        function getDaysDiff(dateStr) {
-            if (!dateStr) return null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const target = new Date(dateStr + 'T00:00:00');
-            return Math.round((target - today) / 86400000);
+        function saveAndRender() {
+            localStorage.setItem('fridge_inventory', JSON.stringify(inventory));
+            renderInventory();
+            pushToCloud();
         }
 
-        function renderList() {
+        function renderInventory() {
             const listEl = document.getElementById('inv-list');
             const query = document.getElementById('search-input').value.trim().toLowerCase();
             const sortBy = document.getElementById('sort-select').value;
+            document.getElementById('clear-search-btn').style.display = query ? 'block' : 'none';
 
-            let keys = Object.keys(inventory);
-            let totalItems = keys.length;
+            const allKeys = Object.keys(inventory);
             let totalPieces = 0;
-            keys.forEach(k => { totalPieces += (Number(inventory[k].qty) || 0); });
-            document.getElementById('header-counts').innerText = `${totalItems} pol. • ${totalPieces} ks`;
+            let activeTypes = 0;
 
-            if (query) {
-                keys = keys.filter(k => (inventory[k].name || '').toLowerCase().includes(query) || k.includes(query));
-            }
+            allKeys.forEach(k => {
+                const q = Number(inventory[k].qty) || 0;
+                totalPieces += q;
+                if (q > 0) activeTypes++;
+            });
 
-            keys.sort((a, b) => {
-                const ia = inventory[a], ib = inventory[b];
+            document.getElementById('item-types-count').innerText = activeTypes;
+            document.getElementById('total-count').innerText = totalPieces;
+
+            const filteredKeys = allKeys.filter(k => {
+                if (!query) return true;
+                const item = inventory[k];
+                return (item.name || '').toLowerCase().includes(query) || k.toLowerCase().includes(query);
+            });
+
+            filteredKeys.sort((a, b) => {
+                const itemA = inventory[a];
+                const itemB = inventory[b];
+
                 if (sortBy === 'alpha') {
-                    return (ia.name || '').localeCompare(ib.name || '', 'sk', { sensitivity: 'base' });
+                    return (itemA.name || '').localeCompare(itemB.name || '', 'sk', { sensitivity: 'base' });
                 }
-                if (sortBy === 'recent') {
-                    return (ib.updated || 0) - (ia.updated || 0);
+                if (sortBy === 'natural') {
+                    return (itemB.updatedAt || 0) - (itemA.updatedAt || 0);
                 }
-                if (sortBy === 'exp_desc') {
-                    const da = ia.expiry || '0000-00-00';
-                    const db = ib.expiry || '0000-00-00';
-                    return db.localeCompare(da);
+                if (sortBy === 'exp-desc') {
+                    if (!itemA.expiry && !itemB.expiry) return 0;
+                    if (!itemA.expiry) return 1;
+                    if (!itemB.expiry) return -1;
+                    return itemB.expiry.localeCompare(itemA.expiry);
                 }
-                // Predvolené: exp_asc (otvorené a najbližšia spotreba navrchu)
-                if (ia.opened !== ib.opened) return ib.opened ? 1 : -1;
-                const da = ia.expiry || '9999-12-31';
-                const db = ib.expiry || '9999-12-31';
-                if (da !== db) return da.localeCompare(db);
-                return (ib.updated || 0) - (ia.updated || 0);
+                if (itemA.opened !== itemB.opened) return itemB.opened ? 1 : -1;
+                if (!itemA.expiry && !itemB.expiry) return (itemB.updatedAt || 0) - (itemA.updatedAt || 0);
+                if (!itemA.expiry) return 1;
+                if (!itemB.expiry) return -1;
+                return itemA.expiry.localeCompare(itemB.expiry);
             });
 
             listEl.innerHTML = '';
-            keys.forEach(ean => {
-                const item = inventory[ean];
+            filteredKeys.forEach(code => {
+                const item = inventory[code];
                 const qty = Number(item.qty) || 0;
-                const days = getDaysDiff(item.expiry);
+                const expState = getExpiryState(item.expiry);
 
-                let cardClass = 'inv-item';
-                if (qty === 0) cardClass += ' empty';
-                else if (days !== null && days < 0) cardClass += ' expired';
-                else if (days !== null && days <= 3) cardClass += ' exp-soon';
-                else if (item.opened) cardClass += ' opened';
-
-                let expBadge = `<span class="badge badge-exp-ok" onclick="openExpiryModal('${ean}')">📅 + Spotreba</span>`;
-                if (item.expiry) {
-                    const formatted = item.expiry.split('-').reverse().join('.');
-                    if (days < 0) expBadge = `<span class="badge badge-expired" onclick="openExpiryModal('${ean}')">⚠️ Po záruke (${formatted})</span>`;
-                    else if (days <= 3) expBadge = `<span class="badge badge-exp-soon" onclick="openExpiryModal('${ean}')">⏳ Do ${formatted} (${days}d)</span>`;
-                    else expBadge = `<span class="badge badge-exp-ok" onclick="openExpiryModal('${ean}')">📅 ${formatted}</span>`;
-                }
-
-                const isUnnamed = (item.name || '').startsWith('Produkt (');
                 const div = document.createElement('div');
-                div.className = cardClass;
+                div.className = `inv-item ${item.opened ? 'opened' : ''} ${expState !== 'ok' ? expState : ''} ${qty === 0 ? 'empty' : ''}`;
                 div.innerHTML = `
-                    <div class="item-info">
-                        <div class="item-name ${isUnnamed ? 'unnamed' : ''}" ${isUnnamed ? `onclick="openEditModal('${ean}')"` : ''}>
-                            ${item.name}
-                            ${item.opened ? '<span class="badge badge-open">Otvorené</span>' : ''}
-                        </div>
+                    <div class="item-info" onclick="openEditModal('${code}')">
+                        <div class="item-name">${item.name}</div>
                         <div class="item-meta">
-                            ${expBadge}
-                            <span>EAN: ${ean}</span>
+                            ${item.opened ? '<span class="badge badge-open">OTVORENÉ</span>' : ''}
+                            ${getExpiryBadgeHtml(item.expiry)}
+                            <span>${item.updatedTime || ''}</span>
                         </div>
                     </div>
                     <div class="item-controls">
-                        <button class="ctrl-btn edit-btn" onclick="openEditModal('${ean}')">✏️</button>
-                        <button class="ctrl-btn" onclick="adjustQty('${ean}', -1)">-</button>
+                        <button class="edit-btn" onclick="openEditModal('${code}')" title="Upraviť">✏️</button>
+                        <button class="ctrl-btn" onclick="adjustQty('${code}', -1)">-</button>
                         <div class="qty-badge">${qty}</div>
-                        <button class="ctrl-btn" onclick="adjustQty('${ean}', 1)">+</button>
+                        <button class="ctrl-btn" onclick="adjustQty('${code}', 1)">+</button>
                     </div>
                 `;
                 listEl.appendChild(div);
             });
         }
 
-        // KAMERA & RÝCHLE ODZRKADLENIE PRE PREDNÚ KAMERU
+        // --- Položky bez EAN ---
+        function buildNoEanGrid() {
+            const grid = document.getElementById('no-ean-grid');
+            grid.innerHTML = '';
+            QUICK_NO_EAN_ITEMS.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'no-ean-item-btn';
+                btn.innerText = `${item.icon} ${item.name}`;
+                btn.onclick = () => {
+                    const slug = item.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                    closeNoEanModal();
+                    lastScannedCode = null;
+                    processProductCode(`BEZ-EAN-${slug}`, `${item.icon} ${item.name}`);
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        function openNoEanModal() {
+            document.getElementById('custom-no-ean-input').value = '';
+            document.getElementById('no-ean-modal').style.display = 'flex';
+        }
+
+        function closeNoEanModal() {
+            document.getElementById('no-ean-modal').style.display = 'none';
+        }
+
+        function addCustomNoEan() {
+            const raw = document.getElementById('custom-no-ean-input').value.trim();
+            if (!raw) return;
+            const slug = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            closeNoEanModal();
+            lastScannedCode = null;
+            processProductCode(`BEZ-EAN-${slug}`, `🍽️ ${raw}`);
+        }
+
+        // --- Kamera na EAN ---
         async function initCameras() {
-            updateStatus('🔍 Zapínam kameru...', 'Povoľ prístup ak vyskočí okno');
+            updateStatus('🔍 Zapínam kameru...', 'Povoľ fotoaparát v prehliadači');
             try {
                 cameras = await Html5Qrcode.getCameras();
-                if (!cameras || !cameras.length) {
-                    updateStatus('❌ Kamera sa nenašla', 'Skontroluj oprávnenia v Androide');
+                if (!cameras || cameras.length === 0) {
+                    updateStatus('❌ Žiadna kamera', 'Zariadenie nenašlo kameru');
                     return;
                 }
                 const frontIdx = cameras.findIndex(c => /front|user|predn/i.test(c.label));
                 currentCameraIndex = frontIdx !== -1 ? frontIdx : 0;
                 startSelectedCamera();
-            } catch (e) {
-                updateStatus('⚠️ Prístup zamietnutý', 'Povoľ fotoaparát v nastaveniach Chrome');
+            } catch (err) {
+                updateStatus('⚠️ Prístup ku kamere zamietnutý', 'Povoľ kameru v nastaveniach Chrome');
             }
         }
 
         async function startSelectedCamera() {
             if (!cameras.length) return;
-            await stopCamera(true);
             const cam = cameras[currentCameraIndex];
-            isFrontCamera = /front|user|predn/i.test(cam.label || '') || (cameras.length > 1 && currentCameraIndex === 0 && !/back|rear|zadn/i.test(cam.label || ''));
-            document.getElementById('btn-cam-label').innerText = isFrontCamera ? '🔄 Predná' : '🔄 Zadná';
+            isFrontCamera = /front|user|predn/i.test(cam.label || '') || (cameras.length > 1 && currentCameraIndex === 0 && !/back|rear|env/i.test(cam.label || ''));
+            ocrUseFront = isFrontCamera;
 
-            html5QrCode = new Html5Qrcode("reader", {
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A
-                ],
-                verbose: false
-            });
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader", {
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ],
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+                });
+            } else if (isCameraRunning) {
+                await html5QrCode.stop();
+                isCameraRunning = false;
+            }
 
             try {
                 await html5QrCode.start(
                     cam.id,
-                    { fps: 12, disableFlip: false },
-                    (txt) => onRawBarcodeDetected(txt, false),
+                    { fps: 12 },
+                    (decodedText) => onCameraFrameDecoded(decodedText),
                     () => {}
                 );
+                isCameraRunning = true;
                 document.getElementById('start-cam-overlay').style.display = 'none';
-                applyVideoTransform();
-                updateStatus('✅ Kamera beží', isFrontCamera ? 'Predná kamera (drž obal cca 30 cm)' : 'Zadná kamera');
 
-                // Ak je predná kamera, pridáme rýchle odzrkadlenie cez natívny BarcodeDetector ak existuje
-                if (isFrontCamera && 'BarcodeDetector' in window) {
-                    startMirrorBarcodeLoop();
-                }
+                const vid = document.querySelector('#reader video');
+                if (vid) vid.classList.toggle('mirrored', isFrontCamera);
+
+                updateStatus('✅ Kamera beží', cam.label || `Kamera ${currentCameraIndex + 1}`);
             } catch (err) {
-                updateStatus('⚠️ Chyba kamery', String(err));
+                updateStatus('⚠️ Chyba spustenia kamery', String(err));
             }
         }
 
-        function startMirrorBarcodeLoop() {
-            clearInterval(mirrorInterval);
-            const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a'] });
-            const canvas = document.getElementById('mirror-canvas');
-            const ctx = canvas.getContext('2d');
-
-            mirrorInterval = setInterval(async () => {
-                const video = document.querySelector('#reader video');
-                if (!video || video.readyState < 2) return;
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.save();
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-                ctx.restore();
+        async function stopCamera() {
+            if (html5QrCode && isCameraRunning) {
                 try {
-                    const barcodes = await detector.detect(canvas);
-                    if (barcodes && barcodes.length > 0) {
-                        onRawBarcodeDetected(barcodes[0].rawValue, false);
-                    }
+                    await html5QrCode.stop();
                 } catch (e) {}
-            }, 220);
-        }
-
-        async function stopCamera(silent = false) {
-            clearInterval(mirrorInterval);
-            if (html5QrCode) {
-                try {
-                    if (html5QrCode.isScanning) await html5QrCode.stop();
-                    html5QrCode.clear();
-                } catch (e) {}
+                isCameraRunning = false;
             }
             document.getElementById('start-cam-overlay').style.display = 'flex';
-            if (!silent) updateStatus('⏹ Kamera vypnutá', 'Ťukni na ZAPNÚŤ KAMERU pre pokračovanie');
+            updateStatus('⏹ Kamera vypnutá', 'Šetrí sa batéria tabletu');
         }
 
         function switchCamera() {
-            if (cameras.length <= 1) { initCameras(); return; }
+            if (cameras.length <= 1) {
+                initCameras();
+                return;
+            }
             currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
             startSelectedCamera();
         }
 
-        function cycleZoom() {
-            zoomLevel = zoomLevel === 1 ? 1.5 : (zoomLevel === 1.5 ? 2 : 1);
-            document.getElementById('btn-zoom').innerText = `🔍 ${zoomLevel}x`;
-            applyVideoTransform();
+        // --- Editácia položky & OCR dátumu ---
+        function openEditModal(code) {
+            if (!inventory[code]) return;
+            editingEan = code;
+            const item = inventory[code];
+            document.getElementById('edit-modal-title').innerText = `Upraviť: ${item.name}`;
+            document.getElementById('edit-name-input').value = item.name || '';
+            document.getElementById('edit-qty-input').value = Number(item.qty) || 0;
+            document.getElementById('edit-exp-input').value = item.expiry || '';
+            document.getElementById('edit-opened-check').checked = !!item.opened;
+            document.getElementById('ocr-status').innerText = '';
+            document.getElementById('edit-modal').style.display = 'flex';
         }
 
-        function applyVideoTransform() {
-            const vid = document.querySelector('#reader video');
-            if (!vid) return;
-            const scaleX = isFrontCamera ? -zoomLevel : zoomLevel;
-            vid.style.transform = `scale(${scaleX}, ${zoomLevel})`;
-        }
-
-        // SPOTREBA & OCR
-        function openExpiryModal(ean) {
-            activeExpiryEan = ean;
-            ocrTargetInputId = 'exp-date-input';
-            document.getElementById('exp-modal-title').innerText = `Spotreba: ${inventory[ean].name}`;
-            document.getElementById('exp-date-input').value = inventory[ean].expiry || '';
-            document.getElementById('ocr-box').style.display = 'none';
-            document.getElementById('expiry-modal').style.display = 'flex';
+        function closeEditModal() {
+            stopOcrCamera();
+            document.getElementById('edit-modal').style.display = 'none';
+            editingEan = null;
         }
 
         function setQuickExpiry(days) {
             const d = new Date();
             d.setDate(d.getDate() + days);
-            document.getElementById('exp-date-input').value = d.toISOString().split('T')[0];
+            document.getElementById('edit-exp-input').value = d.toISOString().split('T')[0];
         }
 
-        function closeExpiryModal(save) {
-            stopOcrCamera();
-            if (save && activeExpiryEan && inventory[activeExpiryEan]) {
-                inventory[activeExpiryEan].expiry = document.getElementById('exp-date-input').value;
-                saveData();
-                renderList();
+        function saveEditModal() {
+            if (!editingEan || !inventory[editingEan]) return;
+            const newName = document.getElementById('edit-name-input').value.trim();
+            const newQty = Math.max(0, parseInt(document.getElementById('edit-qty-input').value, 10) || 0);
+            const newExp = document.getElementById('edit-exp-input').value;
+            const isOpened = document.getElementById('edit-opened-check').checked;
+
+            if (newName) {
+                inventory[editingEan].name = newName;
+                productCatalog[editingEan] = newName;
+                localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
             }
-            document.getElementById('expiry-modal').style.display = 'none';
-            activeExpiryEan = null;
+            inventory[editingEan].qty = newQty;
+            inventory[editingEan].expiry = newExp;
+            inventory[editingEan].opened = newQty > 0 ? isOpened : false;
+            inventory[editingEan].updatedAt = Date.now();
+
+            saveAndRender();
+            closeEditModal();
         }
 
-        function openOcrFromEdit() {
-            ocrTargetInputId = 'edit-expiry';
-            document.getElementById('expiry-modal').style.display = 'flex';
-            document.getElementById('exp-modal-title').innerText = 'Odfotiť dátum spotreby';
-            startOcrCamera();
+        function deleteCurrentItem() {
+            if (!editingEan) return;
+            delete inventory[editingEan];
+            saveAndRender();
+            closeEditModal();
         }
 
         async function startOcrCamera() {
             stopOcrCamera();
-            ocrFacing = isFrontCamera ? 'user' : 'environment';
-            document.getElementById('ocr-box').style.display = 'flex';
-            const vid = document.getElementById('ocr-video');
-            vid.style.transform = ocrFacing === 'user' ? 'scaleX(-1)' : 'none';
+            const wrap = document.getElementById('ocr-video-wrap');
+            const video = document.getElementById('ocr-video');
+            const capBtn = document.getElementById('btn-capture-ocr');
+            const st = document.getElementById('ocr-status');
+
+            wrap.style.display = 'block';
+            capBtn.style.display = 'block';
+            video.classList.toggle('mirrored', ocrUseFront);
+            st.innerText = 'Namier zelený rámik na dátum spotreby...';
+
             try {
-                ocrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: ocrFacing } });
-                vid.srcObject = ocrStream;
+                ocrStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: ocrUseFront ? 'user' : 'environment', width: { ideal: 1280 } }
+                });
+                video.srcObject = ocrStream;
             } catch (e) {
-                document.getElementById('ocr-status').innerText = '⚠️ Nepodarilo sa zapnúť kameru pre OCR';
+                st.innerText = '⚠️ Nepodarilo sa spustiť kameru na dátum';
             }
         }
 
-        function toggleOcrFacing() {
-            ocrFacing = ocrFacing === 'user' ? 'environment' : 'user';
-            stopOcrCamera();
-            document.getElementById('ocr-box').style.display = 'flex';
-            const vid = document.getElementById('ocr-video');
-            vid.style.transform = ocrFacing === 'user' ? 'scaleX(-1)' : 'none';
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: ocrFacing } }).then(s => {
-                ocrStream = s;
-                vid.srcObject = s;
-            });
+        function toggleOcrCameraSide() {
+            ocrUseFront = !ocrUseFront;
+            if (ocrStream) startOcrCamera();
         }
 
         function stopOcrCamera() {
@@ -762,41 +1309,37 @@
                 ocrStream.getTracks().forEach(t => t.stop());
                 ocrStream = null;
             }
+            document.getElementById('ocr-video-wrap').style.display = 'none';
+            document.getElementById('btn-capture-ocr').style.display = 'none';
         }
 
-        async function captureAndReadOcr() {
-            const vid = document.getElementById('ocr-video');
-            if (!vid.videoWidth) return;
-            const statusEl = document.getElementById('ocr-status');
-            statusEl.innerText = '⏳ Čítam číslice z obalu...';
-
+        async function captureAndReadDate() {
+            const video = document.getElementById('ocr-video');
             const canvas = document.getElementById('ocr-canvas');
-            const ctx = canvas.getContext('2d');
-            const cropW = vid.videoWidth * 0.88;
-            const cropH = vid.videoHeight * 0.45;
-            const sx = (vid.videoWidth - cropW) / 2;
-            const sy = (vid.videoHeight - cropH) / 2;
+            const st = document.getElementById('ocr-status');
+            if (!video.videoWidth) return;
+
+            st.innerText = '⏳ Čítam číslice z obalu...';
+
+            const vw = video.videoWidth;
+            const vh = video.videoHeight;
+            const cropW = Math.floor(vw * 0.88);
+            const cropH = Math.floor(vh * 0.45);
+            const cropX = Math.floor((vw - cropW) / 2);
+            const cropY = Math.floor((vh - cropH) / 2);
 
             canvas.width = cropW;
             canvas.height = cropH;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-            // Ak je predná kamera, snímku horizontálne preklopíme do normálneho smeru
-            ctx.save();
-            if (ocrFacing === 'user') {
-                ctx.scale(-1, 1);
-                ctx.drawImage(vid, sx, sy, cropW, cropH, -cropW, 0, cropW, cropH);
-            } else {
-                ctx.drawImage(vid, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
-            }
-            ctx.restore();
-
-            // Zvýšenie kontrastu na čiernobiely text
+            // Zvýšenie kontrastu pre lepšie čítanie
             const imgData = ctx.getImageData(0, 0, cropW, cropH);
-            const d = imgData.data;
-            for (let i = 0; i < d.length; i += 4) {
-                const avg = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-                const val = avg > 125 ? 255 : 0;
-                d[i] = d[i + 1] = d[i + 2] = val;
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const val = gray > 125 ? 255 : 0;
+                data[i] = data[i + 1] = data[i + 2] = val;
             }
             ctx.putImageData(imgData, 0, 0);
 
@@ -806,182 +1349,142 @@
                 });
                 const parsed = parseDetectedDate(res.data.text);
                 if (parsed) {
-                    document.getElementById(ocrTargetInputId).value = parsed;
+                    document.getElementById('edit-exp-input').value = parsed;
                     playBeep('IN');
-                    statusEl.innerText = `✅ Prečítaný dátum: ${parsed.split('-').reverse().join('.')}`;
-                    if (ocrTargetInputId === 'edit-expiry') {
-                        setTimeout(() => {
-                            stopOcrCamera();
-                            document.getElementById('expiry-modal').style.display = 'none';
-                        }, 800);
-                    }
+                    st.innerText = `✅ Prečítaný dátum: ${parsed}`;
+                    stopOcrCamera();
                 } else {
-                    statusEl.innerText = `⚠️ Nenašiel som dátum (text: "${res.data.text.trim().slice(0, 20)}")`;
+                    st.innerText = `❌ Nenašiel som dátum (prečítané: "${res.data.text.trim()}")`;
                 }
-            } catch (e) {
-                statusEl.innerText = '⚠️ Chyba OCR';
+            } catch (err) {
+                st.innerText = '⚠️ Chyba OCR čítania';
             }
         }
 
-        function parseDetectedDate(txt) {
-            const clean = txt.replace(/\s+/g, ' ').trim();
-            // 1. DD.MM.RRRR alebo DD/MM/RRRR alebo DD-MM-RR
-            let m = clean.match(/(\d{1,2})[.\-\/\s]+(\d{1,2})[.\-\/\s]+(20\d{2}|\d{2})/);
+        function parseDetectedDate(text) {
+            const clean = text.replace(/\s+/g, ' ').trim();
+            // Formát DD.MM.RRRR alebo DD/MM/RR
+            let m = clean.match(/(\d{1,2})[.\-\/\s](\d{1,2})[.\-\/\s](20\d{2}|\d{2})/);
             if (m) {
                 let day = m[1].padStart(2, '0');
-                let mon = m[2].padStart(2, '0');
-                let yr = m[3].length === 2 ? '20' + m[3] : m[3];
-                if (Number(mon) >= 1 && Number(mon) <= 12 && Number(day) >= 1 && Number(day) <= 31) {
-                    return `${yr}-${mon}-${day}`;
+                let month = m[2].padStart(2, '0');
+                let year = m[3].length === 2 ? '20' + m[3] : m[3];
+                if (Number(month) >= 1 && Number(month) <= 12 && Number(day) >= 1 && Number(day) <= 31) {
+                    return `${year}-${month}-${day}`;
                 }
             }
-            // 2. MM RRRR alebo MM.RRRR alebo MM/RR (lieky)
-            m = clean.match(/(0?[1-9]|1[0-2])[.\-\/\s]+(20\d{2}|\d{2})/);
-            if (m) {
-                let mon = m[1].padStart(2, '0');
-                let yr = m[2].length === 2 ? '20' + m[2] : m[2];
-                const lastDay = new Date(Number(yr), Number(mon), 0).getDate();
-                return `${yr}-${mon}-${String(lastDay).padStart(2, '0')}`;
+            // Formát liekov MM RRRR alebo MM.RRRR alebo MM/RR
+            let m2 = clean.match(/(0?[1-9]|1[0-2])[.\-\/\s](20\d{2}|\d{2})/);
+            if (m2) {
+                let month = Number(m2[1]);
+                let year = Number(m2[2].length === 2 ? '20' + m2[2] : m2[2]);
+                const lastDay = new Date(year, month, 0).getDate();
+                return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
             }
             return null;
         }
 
-        // EDITÁCIA POLOŽKY
-        function openEditModal(ean) {
-            activeEditEan = ean;
-            const item = inventory[ean];
-            document.getElementById('edit-name').value = item.name;
-            document.getElementById('edit-qty').value = Number(item.qty) || 0;
-            document.getElementById('edit-expiry').value = item.expiry || '';
-            document.getElementById('edit-opened').checked = !!item.opened;
-            document.getElementById('edit-modal').style.display = 'flex';
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-modal').style.display = 'none';
-            activeEditEan = null;
-        }
-
-        function saveEditModal() {
-            if (!activeEditEan || !inventory[activeEditEan]) return;
-            const newName = document.getElementById('edit-name').value.trim();
-            if (newName) {
-                inventory[activeEditEan].name = newName;
-                productCatalog[activeEditEan] = newName;
-                localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
-            }
-            inventory[activeEditEan].qty = Math.max(0, parseInt(document.getElementById('edit-qty').value) || 0);
-            inventory[activeEditEan].expiry = document.getElementById('edit-expiry').value;
-            inventory[activeEditEan].opened = document.getElementById('edit-opened').checked;
-            inventory[activeEditEan].updated = Date.now();
-            saveData();
-            renderList();
-            closeEditModal();
-        }
-
-        function deleteItem() {
-            if (!activeEditEan) return;
-            delete inventory[activeEditEan];
-            saveData();
-            renderList();
-            closeEditModal();
-        }
-
-        // ZÁLOHA & CLOUD
-        function saveData() {
-            localStorage.setItem('fridge_inventory', JSON.stringify(inventory));
-            pushToCloud();
-        }
-
+        // --- Záloha a Cloud ---
         function exportBackup() {
-            const payload = { inventory, productCatalog, date: new Date().toISOString() };
+            const payload = { inventory, productCatalog, exportedAt: new Date().toISOString() };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `chladnicka-zaloha-${new Date().toISOString().split('T')[0]}.json`;
+            a.href = url;
+            a.download = `chladnicka-zaloha-${new Date().toISOString().slice(0, 10)}.json`;
             a.click();
+            URL.revokeObjectURL(url);
         }
 
-        function importBackup(e) {
-            const file = e.target.files[0];
+        function importBackup(event) {
+            const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = ev => {
+            reader.onload = (e) => {
                 try {
-                    const data = JSON.parse(ev.target.result);
+                    const data = JSON.parse(e.target.result);
                     if (data.inventory) inventory = data.inventory;
                     if (data.productCatalog) productCatalog = data.productCatalog;
                     localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
-                    saveData();
-                    renderList();
+                    saveAndRender();
                     updateStatus('✅ Záloha obnovená', 'Dáta boli úspešne načítané');
                 } catch (err) {
-                    updateStatus('❌ Neplatný súbor zálohy', '');
+                    updateStatus('❌ Chybný súbor zálohy', 'Nepodarilo sa načítať JSON');
                 }
             };
             reader.readAsText(file);
         }
 
         function openCloudModal() {
-            document.getElementById('cloud-url').value = cloudConfig ? cloudConfig.url : '';
-            document.getElementById('cloud-room').value = cloudConfig ? cloudConfig.room : '';
+            document.getElementById('cloud-url-input').value = cloudConfig.url || '';
+            document.getElementById('cloud-room-input').value = cloudConfig.room || '';
             document.getElementById('cloud-modal').style.display = 'flex';
         }
 
+        function closeCloudModal() {
+            document.getElementById('cloud-modal').style.display = 'none';
+        }
+
         function saveCloudConfig() {
-            const url = document.getElementById('cloud-url').value.trim().replace(/\/$/, '');
-            const room = document.getElementById('cloud-room').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
-            if (!url || !room) return;
+            const url = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
+            const room = document.getElementById('cloud-room-input').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
             cloudConfig = { url, room };
             localStorage.setItem('fridge_cloud', JSON.stringify(cloudConfig));
-            document.getElementById('cloud-modal').style.display = 'none';
+            closeCloudModal();
             startCloudSync();
-            pushToCloud();
         }
 
         function disconnectCloud() {
-            cloudConfig = null;
-            localStorage.removeItem('fridge_cloud');
-            clearInterval(cloudSyncTimer);
-            document.getElementById('sync-dot').className = 'sync-dot';
-            document.getElementById('cloud-modal').style.display = 'none';
+            cloudConfig = { url: '', room: '' };
+            localStorage.setItem('fridge_cloud', JSON.stringify(cloudConfig));
+            document.getElementById('sync-dot').classList.remove('online');
+            clearInterval(cloudPollTimer);
+            closeCloudModal();
         }
 
-        function pushToCloud() {
-            if (!cloudConfig) return;
-            fetch(`${cloudConfig.url}/fridges/${cloudConfig.room}.json`, {
-                method: 'PUT',
-                body: JSON.stringify({ inventory, productCatalog })
-            }).then(() => {
-                document.getElementById('sync-dot').className = 'sync-dot online';
-            }).catch(() => {
-                document.getElementById('sync-dot').className = 'sync-dot';
-            });
+        async function pushToCloud() {
+            if (!cloudConfig.url || !cloudConfig.room) return;
+            try {
+                await fetch(`${cloudConfig.url}/fridges/${cloudConfig.room}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ inventory, productCatalog, updatedAt: Date.now() })
+                });
+                document.getElementById('sync-dot').classList.add('online');
+            } catch (e) {
+                document.getElementById('sync-dot').classList.remove('online');
+            }
+        }
+
+        async function pullFromCloud() {
+            if (!cloudConfig.url || !cloudConfig.room) return;
+            try {
+                const res = await fetch(`${cloudConfig.url}/fridges/${cloudConfig.room}.json`);
+                const data = await res.json();
+                if (data && data.inventory) {
+                    inventory = data.inventory;
+                    if (data.productCatalog) {
+                        productCatalog = { ...productCatalog, ...data.productCatalog };
+                        localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
+                    }
+                    localStorage.setItem('fridge_inventory', JSON.stringify(inventory));
+                    renderInventory();
+                }
+                document.getElementById('sync-dot').classList.add('online');
+            } catch (e) {
+                document.getElementById('sync-dot').classList.remove('online');
+            }
         }
 
         function startCloudSync() {
-            if (!cloudConfig) return;
-            clearInterval(cloudSyncTimer);
-            const pull = () => {
-                fetch(`${cloudConfig.url}/fridges/${cloudConfig.room}.json`)
-                    .then(r => r.json())
-                    .then(data => {
-                        document.getElementById('sync-dot').className = 'sync-dot online';
-                        if (data && data.inventory) {
-                            inventory = data.inventory;
-                            localStorage.setItem('fridge_inventory', JSON.stringify(inventory));
-                            renderList();
-                        }
-                    }).catch(() => {
-                        document.getElementById('sync-dot').className = 'sync-dot';
-                    });
-            };
-            pull();
-            cloudSyncTimer = setInterval(pull, 5000);
+            clearInterval(cloudPollTimer);
+            if (!cloudConfig.url || !cloudConfig.room) return;
+            pullFromCloud();
+            cloudPollTimer = setInterval(pullFromCloud, 4000);
         }
 
-        renderList();
-        if (cloudConfig) startCloudSync();
+        buildNoEanGrid();
+        renderInventory();
+        startCloudSync();
     </script>
 </body>
 </html>
