@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chladnička Kiosk v19</title>
+    <title>Chladnička Kiosk v20</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -624,7 +624,7 @@
                 <div class="inv-top-row">
                     <div class="inv-title-wrap">
                         <strong style="font-size:0.95rem;">🧊 <span id="item-types-count">0</span> pol. • <span id="total-count">0</span> ks</strong>
-                        <span class="ver-badge">v19</span>
+                        <span class="ver-badge">v20</span>
                         <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
                     </div>
                 </div>
@@ -749,6 +749,8 @@
         let lastScanTime = 0;
         let candidateCode = null;
         let candidateCount = 0;
+        const SAME_CODE_COOLDOWN_MS = 4500;
+        const ANY_CODE_COOLDOWN_MS = 1200;
 
         let cameras = [];
         let currentCameraIndex = 0;
@@ -861,6 +863,18 @@
             const code = normalizeCode(rawText);
             if (!isValidEanChecksum(code)) return;
 
+            const now = Date.now();
+            if ((now - lastScanTime) < ANY_CODE_COOLDOWN_MS) {
+                candidateCode = null;
+                candidateCount = 0;
+                return;
+            }
+            if (code === lastScannedCode && (now - lastScanTime) < SAME_CODE_COOLDOWN_MS) {
+                candidateCode = null;
+                candidateCount = 0;
+                return;
+            }
+
             if (code === candidateCode) {
                 candidateCount++;
             } else {
@@ -871,16 +885,20 @@
             if (candidateCount >= 2) {
                 candidateCode = null;
                 candidateCount = 0;
-                processProductCode(code, null);
+                processProductCode(code, null, true);
             }
         }
 
-        function processProductCode(rawCode, presetName) {
+        function processProductCode(rawCode, presetName, fromCamera = false) {
             const code = normalizeCode(rawCode);
             if (!code) return;
 
             const now = Date.now();
-            if (code === lastScannedCode && (now - lastScanTime) < 1500) return;
+            if (fromCamera) {
+                if ((now - lastScanTime) < ANY_CODE_COOLDOWN_MS) return;
+                if (code === lastScannedCode && (now - lastScanTime) < SAME_CODE_COOLDOWN_MS) return;
+            }
+
             lastScannedCode = code;
             lastScanTime = now;
 
@@ -933,11 +951,11 @@
             if (currentMode === 'IN') {
                 inventory[code].qty = currentQty + qtyDelta;
                 inventory[code].opened = false;
-                updateStatus(`✅ +${qtyDelta} ks: ${inventory[code].name}`, `Spolu: ${inventory[code].qty} ks`);
+                updateStatus(`✅ +${qtyDelta} ks: ${inventory[code].name}`, `Spolu: ${inventory[code].qty} ks • Odtiahni produkt`);
             } else if (currentMode === 'OUT') {
                 inventory[code].qty = Math.max(0, currentQty - qtyDelta);
                 if (inventory[code].qty === 0) inventory[code].opened = false;
-                updateStatus(`🔴 -${qtyDelta} ks: ${inventory[code].name}`, `Zostáva: ${inventory[code].qty} ks`);
+                updateStatus(`🔴 -${qtyDelta} ks: ${inventory[code].name}`, `Zostáva: ${inventory[code].qty} ks • Odtiahni produkt`);
             } else if (currentMode === 'RET') {
                 inventory[code].qty = currentQty === 0 ? qtyDelta : currentQty;
                 inventory[code].opened = true;
@@ -975,8 +993,7 @@
             const inp = document.getElementById('manual-ean');
             const val = normalizeCode(inp.value);
             if (val) {
-                lastScannedCode = null;
-                processProductCode(val, null);
+                processProductCode(val, null, false);
                 inp.value = '';
             }
         }
@@ -1119,10 +1136,9 @@
                 btn.className = 'no-ean-item-btn';
                 btn.innerText = `${item.icon} ${item.name}`;
                 btn.onclick = () => {
-                    const slug = item.name.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                    const slug = item.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
                     closeNoEanModal();
-                    lastScannedCode = null;
-                    processProductCode(`BEZ-EAN-${slug}`, `${item.icon} ${item.name}`);
+                    processProductCode(`BEZ-EAN-${slug}`, `${item.icon} ${item.name}`, false);
                 };
                 grid.appendChild(btn);
             });
@@ -1140,10 +1156,9 @@
         function addCustomNoEan() {
             const raw = document.getElementById('custom-no-ean-input').value.trim();
             if (!raw) return;
-            const slug = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const slug = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
             closeNoEanModal();
-            lastScannedCode = null;
-            processProductCode(`BEZ-EAN-${slug}`, `🍽️ ${raw}`);
+            processProductCode(`BEZ-EAN-${slug}`, `🍽️ ${raw}`, false);
         }
 
         // --- Kamera na EAN ---
@@ -1364,7 +1379,7 @@
         function parseDetectedDate(text) {
             const clean = text.replace(/\s+/g, ' ').trim();
             // Formát DD.MM.RRRR alebo DD/MM/RR
-            let m = clean.match(/(\d{1,2})[.\-\/\s](\d{1,2})[.\-\/\s](20\d{2}|\d{2})/);
+            let m = clean.match(/(\d{1,2})[.\-\/\s](\d{1,2})[.\-\/\s](20\d{2}|\d{2})/);
             if (m) {
                 let day = m[1].padStart(2, '0');
                 let month = m[2].padStart(2, '0');
@@ -1374,7 +1389,7 @@
                 }
             }
             // Formát liekov MM RRRR alebo MM.RRRR alebo MM/RR
-            let m2 = clean.match(/(0?[1-9]|1[0-2])[.\-\/\s](20\d{2}|\d{2})/);
+            let m2 = clean.match(/(0?[1-9]|1[0-2])[.\-\/\s](20\d{2}|\d{2})/);
             if (m2) {
                 let month = Number(m2[1]);
                 let year = Number(m2[2].length === 2 ? '20' + m2[2] : m2[2]);
