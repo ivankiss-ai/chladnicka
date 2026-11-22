@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chladnička Kiosk v23</title>
+    <title>Chladnička Kiosk v24</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -565,7 +565,7 @@
                 <div class="inv-top-row">
                     <div class="inv-title-wrap">
                         <strong style="font-size:0.95rem;">🧊 <span id="item-types-count">0</span> pol. • <span id="total-count">0</span> ks</strong>
-                        <span class="ver-badge">v23</span>
+                        <span class="ver-badge">v24</span>
                         <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
                     </div>
                 </div>
@@ -604,7 +604,7 @@
             <p style="font-size:0.78rem; color:var(--text-muted);">Položka sa vždy vloží do chladničky (pripočíta sa k zásobám).</p>
 
             <label>Názov produktu</label>
-            <input type="text" id="no-ean-name-input" placeholder="Napr. Jablká, Nedeľný vývar, Syr...">
+            <input type="text" id="no-ean-name-input" placeholder="Napr. Jablká, Chlieb, Nedeľný vývar...">
 
             <label>Počet kusov na vloženie</label>
             <input type="number" id="no-ean-qty-input" min="1" value="1" inputmode="numeric">
@@ -635,7 +635,7 @@
             <h3 id="edit-modal-title">Upraviť položku</h3>
             <label>Názov produktu</label>
             <input type="text" id="edit-name-input" placeholder="Zadaj názov">
-            
+
             <label>Počet kusov v chladničke</label>
             <input type="number" id="edit-qty-input" min="0" inputmode="numeric">
 
@@ -680,8 +680,8 @@
             <p style="font-size:0.78rem; color:var(--text-muted);">Prepoj tablet pri chladničke s mobilom v obchode cez bezplatnú Firebase Realtime Database.</p>
             <label>URL databázy Firebase</label>
             <input type="url" id="cloud-url-input" placeholder="https://tvoj-projekt-default-rtdb.firebaseio.com">
-            <label>Názov domácnosti (tajný kód)</label>
-            <input type="text" id="cloud-room-input" placeholder="Napr. novakovci2026">
+            <label>Názov domácnosti (tajný kód - automaticky malé písmená)</label>
+            <input type="text" id="cloud-room-input" placeholder="Napr. ivan2026" autocapitalize="none" autocorrect="off" spellcheck="false">
             <div class="modal-actions">
                 <button style="background:#7f1d1d; color:white;" onclick="disconnectCloud()">Odpojiť</button>
                 <button style="background:#3f3f46; color:white;" onclick="closeCloudModal()">Zavrieť</button>
@@ -719,6 +719,10 @@
         let inventory = JSON.parse(localStorage.getItem('fridge_inventory')) || {};
         let productCatalog = JSON.parse(localStorage.getItem('fridge_catalog')) || {};
         let cloudConfig = JSON.parse(localStorage.getItem('fridge_cloud')) || { url: '', room: '' };
+        if (cloudConfig.room) {
+            cloudConfig.room = cloudConfig.room.toLowerCase();
+            localStorage.setItem('fridge_cloud', JSON.stringify(cloudConfig));
+        }
         let cloudPollTimer = null;
 
         function normalizeCode(raw) {
@@ -1071,7 +1075,7 @@
             });
         }
 
-        // --- Položky bez EAN (bez obrázkov, len prompt na názov, ks a spotrebu; vždy režim IN) ---
+        // --- Položky bez EAN ---
         function openNoEanModal() {
             document.getElementById('no-ean-name-input').value = '';
             document.getElementById('no-ean-qty-input').value = '1';
@@ -1099,7 +1103,7 @@
             const exp = document.getElementById('no-ean-exp-input').value;
             const opened = document.getElementById('no-ean-opened-check').checked;
 
-            const slug = rawName.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const slug = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
             const code = `BEZ-EAN-${slug}`;
 
             closeNoEanModal();
@@ -1374,7 +1378,7 @@
 
         function openCloudModal() {
             document.getElementById('cloud-url-input').value = cloudConfig.url || '';
-            document.getElementById('cloud-room-input').value = cloudConfig.room || '';
+            document.getElementById('cloud-room-input').value = (cloudConfig.room || '').toLowerCase();
             document.getElementById('cloud-modal').style.display = 'flex';
         }
 
@@ -1382,12 +1386,23 @@
             document.getElementById('cloud-modal').style.display = 'none';
         }
 
-        function saveCloudConfig() {
+        async function saveCloudConfig() {
             const url = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
-            const room = document.getElementById('cloud-room-input').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+            const room = document.getElementById('cloud-room-input').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
             cloudConfig = { url, room };
             localStorage.setItem('fridge_cloud', JSON.stringify(cloudConfig));
             closeCloudModal();
+
+            if (!url || !room) return;
+
+            try {
+                const res = await fetch(`${url}/fridges/${room}.json`);
+                const data = await res.json();
+                if (!data && Object.keys(inventory).length > 0) {
+                    await pushToCloud();
+                }
+            } catch (e) {}
+
             startCloudSync();
         }
 
