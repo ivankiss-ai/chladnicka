@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chladnička Kiosk v20</title>
+    <title>Chladnička Kiosk v21</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -98,40 +98,10 @@
             flex-shrink: 0;
         }
 
-        .multiplier-bar {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .mult-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-right: 4px;
-            white-space: nowrap;
-        }
-
-        .mult-btn {
-            flex: 1;
-            padding: 6px 0;
-            border-radius: 7px;
-            border: 1px solid #3f3f46;
-            background: #121214;
-            color: white;
-            font-weight: 800;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-
-        .mult-btn.active {
-            background: var(--color-blue);
-            border-color: #60a5fa;
-        }
-
         .camera-wrapper {
             position: relative;
             width: 100%;
-            height: 140px;
+            height: 155px;
             background: #000;
             border-radius: 10px;
             overflow: hidden;
@@ -494,29 +464,6 @@
             cursor: pointer;
         }
 
-        .no-ean-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-        }
-
-        .no-ean-item-btn {
-            background: #121214;
-            border: 1px solid #3f3f46;
-            color: white;
-            padding: 10px 6px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .no-ean-item-btn:active {
-            background: var(--color-in);
-            color: #000;
-        }
-
         .ocr-box {
             background: #121214;
             border: 1px solid #3f3f46;
@@ -591,15 +538,6 @@
 
     <div class="main-layout">
         <div class="scanner-panel">
-            <div class="multiplier-bar">
-                <span class="mult-label">Počet ks:</span>
-                <button class="mult-btn active" id="mult-1" onclick="setMultiplier(1)">1x</button>
-                <button class="mult-btn" id="mult-2" onclick="setMultiplier(2)">2x</button>
-                <button class="mult-btn" id="mult-3" onclick="setMultiplier(3)">3x</button>
-                <button class="mult-btn" id="mult-4" onclick="setMultiplier(4)">4x</button>
-                <button class="mult-btn" id="mult-5" onclick="setMultiplier(5)">5x</button>
-            </div>
-
             <div class="camera-wrapper">
                 <div id="reader"></div>
                 <div class="laser-line"></div>
@@ -624,7 +562,7 @@
                 <div class="inv-top-row">
                     <div class="inv-title-wrap">
                         <strong style="font-size:0.95rem;">🧊 <span id="item-types-count">0</span> pol. • <span id="total-count">0</span> ks</strong>
-                        <span class="ver-badge">v20</span>
+                        <span class="ver-badge">v21</span>
                         <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
                     </div>
                 </div>
@@ -657,19 +595,35 @@
         </div>
     </div>
 
-    <!-- Modal: Položky bez EAN kódu -->
+    <!-- Modal: Položka bez EAN (len ručné zadanie) -->
     <div class="modal" id="no-ean-modal">
         <div class="modal-content">
-            <h3>🍎 Pridať položku bez EAN</h3>
-            <p style="font-size:0.78rem; color:var(--text-muted);">Aplikuje sa zvolený režim (Výber / Nákup / Vrátenie) a počet kusov.</p>
-            <div class="no-ean-grid" id="no-ean-grid"></div>
-            <label>Alebo vlastný názov:</label>
-            <div style="display:flex; gap:6px;">
-                <input type="text" id="custom-no-ean-input" placeholder="Napr. Nedeľný vývar, Domáci džem...">
-                <button style="background:var(--color-in); color:#000; border:none; border-radius:8px; padding:0 14px; font-weight:800; cursor:pointer;" onclick="addCustomNoEan()">Pridať</button>
+            <h3>🍎 Položka bez EAN</h3>
+            <p style="font-size:0.78rem; color:var(--text-muted);">Aplikuje sa zvolený režim (Výber / Nákup / Vrátenie).</p>
+
+            <label>Názov produktu</label>
+            <input type="text" id="no-ean-name-input" placeholder="Napr. Jablká, Nedeľný vývar, Syr...">
+
+            <label>Počet kusov</label>
+            <input type="number" id="no-ean-qty-input" min="1" value="1" inputmode="numeric">
+
+            <label>Dátum spotreby (voliteľné)</label>
+            <div class="quick-days">
+                <button type="button" onclick="setNoEanQuickExpiry(2)">+2 dni</button>
+                <button type="button" onclick="setNoEanQuickExpiry(5)">+5 dní</button>
+                <button type="button" onclick="setNoEanQuickExpiry(14)">+2 týž.</button>
+                <button type="button" onclick="setNoEanQuickExpiry(30)">+1 mes.</button>
             </div>
+            <input type="date" id="no-ean-exp-input">
+
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                <input type="checkbox" id="no-ean-opened-check" style="width:18px; height:18px;">
+                <label for="no-ean-opened-check" style="margin:0; font-size:0.88rem; color:white;">Označiť ako otvorené (skorá spotreba)</label>
+            </div>
+
             <div class="modal-actions">
-                <button style="background:#3f3f46; color:white;" onclick="closeNoEanModal()">Zavrieť</button>
+                <button type="button" style="background:#3f3f46; color:white;" onclick="closeNoEanModal()">Zrušiť</button>
+                <button type="button" style="background:var(--color-in); color:#000;" onclick="saveNoEanModal()">Uložiť</button>
             </div>
         </div>
     </div>
@@ -740,7 +694,6 @@
 
     <script>
         let currentMode = 'OUT';
-        let currentMultiplier = 1;
         let askExpiryOnScan = false;
         let resetTimer = null;
         let countdownInterval = null;
@@ -766,21 +719,6 @@
         let productCatalog = JSON.parse(localStorage.getItem('fridge_catalog')) || {};
         let cloudConfig = JSON.parse(localStorage.getItem('fridge_cloud')) || { url: '', room: '' };
         let cloudPollTimer = null;
-
-        const QUICK_NO_EAN_ITEMS = [
-            { icon: '🍎', name: 'Jablká' },
-            { icon: '🍌', name: 'Banány' },
-            { icon: '🍅', name: 'Paradajky' },
-            { icon: '🥒', name: 'Uhorka' },
-            { icon: '🫑', name: 'Paprika' },
-            { icon: '🥕', name: 'Mrkva' },
-            { icon: '🥔', name: 'Zemiaky' },
-            { icon: '🧅', name: 'Cibuľa' },
-            { icon: '🥚', name: 'Vajcia' },
-            { icon: '🍞', name: 'Chlieb / Pečivo' },
-            { icon: '🧀', name: 'Syr (vážený)' },
-            { icon: '🍖', name: 'Šunka (vážená)' }
-        ];
 
         function normalizeCode(raw) {
             return String(raw || '').trim().replace(/\s+/g, '');
@@ -845,13 +783,6 @@
             }
         }
 
-        function setMultiplier(n) {
-            currentMultiplier = n;
-            for (let i = 1; i <= 5; i++) {
-                document.getElementById('mult-' + i).classList.toggle('active', i === n);
-            }
-        }
-
         function toggleAskExpiry() {
             askExpiryOnScan = !askExpiryOnScan;
             const btn = document.getElementById('btn-ask-exp');
@@ -885,11 +816,11 @@
             if (candidateCount >= 2) {
                 candidateCode = null;
                 candidateCount = 0;
-                processProductCode(code, null, true);
+                processProductCode(code, null, true, 1);
             }
         }
 
-        function processProductCode(rawCode, presetName, fromCamera = false) {
+        function processProductCode(rawCode, presetName, fromCamera = false, customQty = 1, customExpiry = null, customOpened = null) {
             const code = normalizeCode(rawCode);
             if (!code) return;
 
@@ -904,8 +835,7 @@
 
             if (currentMode !== 'OUT') setMode(currentMode);
 
-            const qtyDelta = currentMultiplier;
-            setMultiplier(1);
+            const qtyDelta = Math.max(1, parseInt(customQty, 10) || 1);
 
             const existing = inventory[code];
             const currentQty = existing ? (Number(existing.qty) || 0) : 0;
@@ -945,20 +875,25 @@
                 localStorage.setItem('fridge_catalog', JSON.stringify(productCatalog));
             }
 
+            if (customExpiry) {
+                inventory[code].expiry = customExpiry;
+            }
+
             inventory[code].updatedAt = Date.now();
             inventory[code].updatedTime = new Date().toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
 
             if (currentMode === 'IN') {
                 inventory[code].qty = currentQty + qtyDelta;
-                inventory[code].opened = false;
+                inventory[code].opened = customOpened !== null ? customOpened : false;
                 updateStatus(`✅ +${qtyDelta} ks: ${inventory[code].name}`, `Spolu: ${inventory[code].qty} ks • Odtiahni produkt`);
             } else if (currentMode === 'OUT') {
                 inventory[code].qty = Math.max(0, currentQty - qtyDelta);
                 if (inventory[code].qty === 0) inventory[code].opened = false;
+                else if (customOpened !== null) inventory[code].opened = customOpened;
                 updateStatus(`🔴 -${qtyDelta} ks: ${inventory[code].name}`, `Zostáva: ${inventory[code].qty} ks • Odtiahni produkt`);
             } else if (currentMode === 'RET') {
                 inventory[code].qty = currentQty === 0 ? qtyDelta : currentQty;
-                inventory[code].opened = true;
+                inventory[code].opened = customOpened !== null ? customOpened : true;
                 updateStatus(`🟡 Vrátené: ${inventory[code].name}`, 'Označené ako otvorené');
             }
 
@@ -968,7 +903,7 @@
                 fetchProductNameBackground(code);
             }
 
-            if (askExpiryOnScan && (currentMode === 'IN' || currentMode === 'RET')) {
+            if (askExpiryOnScan && customExpiry === null && (currentMode === 'IN' || currentMode === 'RET')) {
                 openEditModal(code);
             }
         }
@@ -993,7 +928,7 @@
             const inp = document.getElementById('manual-ean');
             const val = normalizeCode(inp.value);
             if (val) {
-                processProductCode(val, null, false);
+                processProductCode(val, null, false, 1);
                 inp.value = '';
             }
         }
@@ -1127,38 +1062,39 @@
             });
         }
 
-        // --- Položky bez EAN ---
-        function buildNoEanGrid() {
-            const grid = document.getElementById('no-ean-grid');
-            grid.innerHTML = '';
-            QUICK_NO_EAN_ITEMS.forEach(item => {
-                const btn = document.createElement('button');
-                btn.className = 'no-ean-item-btn';
-                btn.innerText = `${item.icon} ${item.name}`;
-                btn.onclick = () => {
-                    const slug = item.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
-                    closeNoEanModal();
-                    processProductCode(`BEZ-EAN-${slug}`, `${item.icon} ${item.name}`, false);
-                };
-                grid.appendChild(btn);
-            });
-        }
-
+        // --- Položka bez EAN (prompt na názov, ks, spotrebu) ---
         function openNoEanModal() {
-            document.getElementById('custom-no-ean-input').value = '';
+            document.getElementById('no-ean-name-input').value = '';
+            document.getElementById('no-ean-qty-input').value = '1';
+            document.getElementById('no-ean-exp-input').value = '';
+            document.getElementById('no-ean-opened-check').checked = (currentMode === 'RET');
             document.getElementById('no-ean-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('no-ean-name-input').focus(), 100);
         }
 
         function closeNoEanModal() {
             document.getElementById('no-ean-modal').style.display = 'none';
         }
 
-        function addCustomNoEan() {
-            const raw = document.getElementById('custom-no-ean-input').value.trim();
-            if (!raw) return;
-            const slug = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+        function setNoEanQuickExpiry(days) {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            document.getElementById('no-ean-exp-input').value = d.toISOString().split('T')[0];
+        }
+
+        function saveNoEanModal() {
+            const rawName = document.getElementById('no-ean-name-input').value.trim();
+            if (!rawName) return;
+
+            const qty = Math.max(1, parseInt(document.getElementById('no-ean-qty-input').value, 10) || 1);
+            const exp = document.getElementById('no-ean-exp-input').value;
+            const isOpened = document.getElementById('no-ean-opened-check').checked;
+
+            const slug = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+            const code = `BEZ-EAN-${slug}`;
+
             closeNoEanModal();
-            processProductCode(`BEZ-EAN-${slug}`, `🍽️ ${raw}`, false);
+            processProductCode(code, rawName, false, qty, exp, isOpened);
         }
 
         // --- Kamera na EAN ---
@@ -1348,7 +1284,6 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-            // Zvýšenie kontrastu pre lepšie čítanie
             const imgData = ctx.getImageData(0, 0, cropW, cropH);
             const data = imgData.data;
             for (let i = 0; i < data.length; i += 4) {
@@ -1378,7 +1313,6 @@
 
         function parseDetectedDate(text) {
             const clean = text.replace(/\s+/g, ' ').trim();
-            // Formát DD.MM.RRRR alebo DD/MM/RR
             let m = clean.match(/(\d{1,2})[.\-\/\s](\d{1,2})[.\-\/\s](20\d{2}|\d{2})/);
             if (m) {
                 let day = m[1].padStart(2, '0');
@@ -1388,7 +1322,6 @@
                     return `${year}-${month}-${day}`;
                 }
             }
-            // Formát liekov MM RRRR alebo MM.RRRR alebo MM/RR
             let m2 = clean.match(/(0?[1-9]|1[0-2])[.\-\/\s](20\d{2}|\d{2})/);
             if (m2) {
                 let month = Number(m2[1]);
@@ -1497,7 +1430,6 @@
             cloudPollTimer = setInterval(pullFromCloud, 4000);
         }
 
-        buildNoEanGrid();
         renderInventory();
         startCloudSync();
     </script>
