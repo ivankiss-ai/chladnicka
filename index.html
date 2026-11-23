@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chladnička Kiosk v25</title>
+    <title>Chladnička Kiosk v26</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -565,7 +565,7 @@
                 <div class="inv-top-row">
                     <div class="inv-title-wrap">
                         <strong style="font-size:0.95rem;">🧊 <span id="item-types-count">0</span> pol. • <span id="total-count">0</span> ks</strong>
-                        <span class="ver-badge">v25</span>
+                        <span class="ver-badge">v26</span>
                         <span class="sync-dot" id="sync-dot" title="Stav cloudu"></span>
                     </div>
                 </div>
@@ -761,8 +761,8 @@
 
         function playBeep(type) {
             try {
-                unlockAudio();
-                if (!sharedAudioCtx) return;
+                if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
                 const ctx = sharedAudioCtx;
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -783,6 +783,7 @@
             } catch (e) {}
         }
 
+  
         function setMode(mode) {
             unlockAudio();
             currentMode = mode;
@@ -1131,8 +1132,9 @@
             processProductCode(code, rawName, false, qty, exp, opened, 'IN');
         }
 
+
+
         async function initCameras() {
-            unlockAudio();
             updateStatus('🔍 Zapínam kameru...', 'Povoľ fotoaparát v prehliadači');
             try {
                 cameras = await Html5Qrcode.getCameras();
@@ -1140,18 +1142,18 @@
                     updateStatus('❌ Žiadna kamera', 'Zariadenie nenašlo kameru');
                     return;
                 }
-                const frontIdx = cameras.findIndex(c => /front|user|predn|čelní|facetime/i.test(c.label));
-                currentCameraIndex = frontIdx !== -1 ? frontIdx : 0;
+                const backIdx = cameras.findIndex(c => /back|rear|env|zadn/i.test(c.label));
+                currentCameraIndex = backIdx !== -1 ? backIdx : 0;
                 startSelectedCamera();
             } catch (err) {
-                updateStatus('⚠️ Prístup ku kamere zamietnutý', 'Povoľ kameru v nastaveniach Chrome');
+                updateStatus('⚠️ Prístup ku kamere zamietnutý', 'Povoľ kameru v nastaveniach');
             }
         }
 
         async function startSelectedCamera() {
             if (!cameras.length) return;
             const cam = cameras[currentCameraIndex];
-            isFrontCamera = /front|user|predn|čelní|facetime/i.test(cam.label || '') || (cameras.length > 1 && currentCameraIndex === 0 && !/back|rear|env|zadn/i.test(cam.label || ''));
+            isFrontCamera = /front|user|predn|čelní|facetime/i.test(cam.label || '');
             ocrUseFront = isFrontCamera;
 
             if (!html5QrCode) {
@@ -1161,8 +1163,7 @@
                         Html5QrcodeSupportedFormats.EAN_8,
                         Html5QrcodeSupportedFormats.UPC_A,
                         Html5QrcodeSupportedFormats.UPC_E
-                    ],
-                    experimentalFeatures: { useBarCodeDetectorIfSupported: false }
+                    ]
                 });
             } else if (isCameraRunning) {
                 await html5QrCode.stop();
@@ -1172,8 +1173,20 @@
             try {
                 await html5QrCode.start(
                     cam.id,
-                    { fps: 12 },
-                    (decodedText) => onCameraFrameDecoded(decodedText),
+                    {
+                        fps: 15,
+                        qrbox: { width: 250, height: 100 },
+                        videoConstraints: {
+                            deviceId: { exact: cam.id },
+                            focusMode: "continuous"
+                        }
+                    },
+                    (decodedText) => {
+                        const code = normalizeCode(decodedText);
+                        if (isValidEanChecksum(code)) {
+                            processProductCode(code, null, true, 1);
+                        }
+                    },
                     () => {}
                 );
                 isCameraRunning = true;
