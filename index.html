@@ -25,7 +25,6 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             user-select: none;
-            -webkit-user-select: none;
         }
 
         body {
@@ -42,7 +41,6 @@
         body.mode-in { border-color: var(--color-in); }
         body.mode-ret { border-color: var(--color-ret); }
         body.flash-error { background-color: #450a0a; }
-        body.flash-ok { background-color: #064e3b; }
 
         .modes-bar {
             display: grid;
@@ -187,8 +185,6 @@
             padding: 7px 10px;
             border-radius: 8px;
             font-size: 0.9rem;
-            user-select: text;
-            -webkit-user-select: text;
         }
         .manual-input button {
             background: #3f3f46;
@@ -308,8 +304,6 @@
             padding: 7px 26px 7px 10px;
             border-radius: 8px;
             font-size: 0.85rem;
-            user-select: text;
-            -webkit-user-select: text;
         }
 
         .clear-search {
@@ -454,8 +448,6 @@
             background: #121214;
             color: white;
             width: 100%;
-            user-select: text;
-            -webkit-user-select: text;
         }
 
         .quick-days {
@@ -770,8 +762,8 @@
         function playBeep(type) {
             try {
                 unlockAudio();
+                if (!sharedAudioCtx) return;
                 const ctx = sharedAudioCtx;
-                if (!ctx) return;
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
@@ -882,8 +874,6 @@
             }
 
             playBeep(activeMode);
-            document.body.classList.add('flash-ok');
-            setTimeout(() => document.body.classList.remove('flash-ok'), 250);
 
             let resolvedName = presetName || (existing && existing.name) || productCatalog[code];
             let needsOnlineLookup = false;
@@ -1107,7 +1097,6 @@
             });
         }
 
-        // --- Položky bez EAN ---
         function openNoEanModal() {
             document.getElementById('no-ean-name-input').value = '';
             document.getElementById('no-ean-qty-input').value = '1';
@@ -1142,7 +1131,6 @@
             processProductCode(code, rawName, false, qty, exp, opened, 'IN');
         }
 
-        // --- Kamera na EAN ---
         async function initCameras() {
             unlockAudio();
             updateStatus('🔍 Zapínam kameru...', 'Povoľ fotoaparát v prehliadači');
@@ -1156,21 +1144,14 @@
                 currentCameraIndex = frontIdx !== -1 ? frontIdx : 0;
                 startSelectedCamera();
             } catch (err) {
-                updateStatus('⚠️ Prístup ku kamere zamietnutý', 'Povoľ kameru v nastaveniach prehliadača');
+                updateStatus('⚠️ Prístup ku kamere zamietnutý', 'Povoľ kameru v nastaveniach Chrome');
             }
         }
 
         async function startSelectedCamera() {
             if (!cameras.length) return;
             const cam = cameras[currentCameraIndex];
-            const labelLower = (cam.label || '').toLowerCase();
-            if (/back|rear|env|zadn/i.test(labelLower)) {
-                isFrontCamera = false;
-            } else if (/front|user|predn|čelní|facetime/i.test(labelLower)) {
-                isFrontCamera = true;
-            } else {
-                isFrontCamera = (cameras.length > 1 && currentCameraIndex === 0);
-            }
+            isFrontCamera = /front|user|predn|čelní|facetime/i.test(cam.label || '') || (cameras.length > 1 && currentCameraIndex === 0 && !/back|rear|env|zadn/i.test(cam.label || ''));
             ocrUseFront = isFrontCamera;
 
             if (!html5QrCode) {
@@ -1228,7 +1209,6 @@
             startSelectedCamera();
         }
 
-        // --- Editácia položky & OCR dátumu ---
         function openEditModal(code) {
             if (!inventory[code]) return;
             editingEan = code;
@@ -1386,7 +1366,6 @@
             return null;
         }
 
-        // --- Záloha a Cloud ---
         function exportBackup() {
             const payload = { inventory, productCatalog, exportedAt: new Date().toISOString() };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
