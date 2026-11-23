@@ -1463,8 +1463,10 @@
                     renderInventory();
                 }
                 document.getElementById('sync-dot').classList.add('online');
-            } catch (e) {
+               } catch (e) {
                 document.getElementById('sync-dot').classList.remove('online');
+                const fullUrl = `${cloudConfig.url}/fridges/${cloudConfig.room}.json`;
+                updateStatus(`❌ Cloud chyba: ${e.message}`, fullUrl);
             }
         }
 
