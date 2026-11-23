@@ -759,30 +759,18 @@
             return calc === checkDigit;
         }
 
+
         function playBeep(type) {
             try {
-                if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
-                const ctx = sharedAudioCtx;
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                if (type === 'ERR') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(180, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.35, ctx.currentTime);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.28);
-                } else {
-                    osc.frequency.setValueAtTime(type === 'IN' ? 780 : (type === 'OUT' ? 420 : 580), ctx.currentTime);
-                    gain.gain.setValueAtTime(0.28, ctx.currentTime);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.14);
-                }
+                // Krátke vstavané pípnutia (fungujú na iPade aj v tichom režime)
+                const wavOk = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" + "tvT18A".repeat(12);
+                const wavErr = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" + "AA//8A".repeat(18);
+                
+                const audio = new Audio(type === 'ERR' ? wavErr : wavOk);
+                audio.volume = 1.0;
+                audio.play().catch(() => {});
             } catch (e) {}
         }
-
   
         function setMode(mode) {
             unlockAudio();
@@ -1175,7 +1163,7 @@
                     cam.id,
                     {
                         fps: 15,
-                        qrbox: { width: 250, height: 100 },
+                    qrbox: (viewfinderWidth, viewfinderHeight) => ({ width: Math.floor(viewfinderWidth * 0.9), height: Math.floor(viewfinderHeight * 0.8) }),
                         videoConstraints: {
                             deviceId: { exact: cam.id },
                             focusMode: "continuous"
